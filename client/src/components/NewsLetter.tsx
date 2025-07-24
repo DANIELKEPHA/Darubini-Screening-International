@@ -244,7 +244,7 @@ const NewsLetter = () => {
 
                                     <div>
                                         <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Additional Notes (Optional)
+                                            Additional Notes
                                         </label>
                                         <textarea
                                             id="message"
@@ -364,7 +364,7 @@ const NewsLetter = () => {
                                         <p className="text-sm text-primary-500">{testimonial.role}</p>
                                     </div>
                                 </div>
-                                <p className="text-gray-700 italic">"{testimonial.content}"</p>
+                                <p className="text-gray-700 italic">&#34;{testimonial.content}&#34;</p>
                                 <div className="mt-4 flex items-center">
                                     {[...Array(5)].map((_, i) => (
                                         <Star key={i} className="h-5 w-5 text-secondary-400 fill-current" />

@@ -8,7 +8,7 @@ import { Button } from "./ui/button";
 import { useGetAuthUserQuery } from "@/state/api";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "aws-amplify/auth";
-import { Bell, MessageCircle, Plus, Search } from "lucide-react";
+import { Bell, ChevronDown, MessageCircle, Plus, Search, Home, UserCircle, Briefcase, Files } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,180 +19,240 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { SidebarTrigger } from "./ui/sidebar";
 
+interface NavLink {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
 const Navbar = () => {
   const { data: authUser } = useGetAuthUserQuery();
   const router = useRouter();
   const pathname = usePathname();
 
-  const isDashboardPage =
-    pathname.includes("/managers") || pathname.includes("/tenants");
+  const isDashboardPage = pathname.includes("/admin") || pathname.includes("/user");
 
   const handleSignOut = async () => {
     await signOut();
     window.location.href = "/";
   };
 
-  return (
-    <div
-      className="fixed top-0 left-0 w-full z-50 shadow-xl"
-      style={{ height: `${NAVBAR_HEIGHT}px` }}
-    >
-      <div className="flex justify-between items-center w-full py-3 px-8 bg-primary-700 text-white">
-        <div className="flex items-center gap-4 md:gap-6">
-          {isDashboardPage && (
-            <div className="md:hidden">
-              <SidebarTrigger />
-            </div>
-          )}
-          <Link
-            href="/"
-            className="cursor-pointer hover:!text-primary-300"
-            scroll={false}
-          >
-            <div className="flex items-center gap-3">
-              <Image
-                src="/logo.svg"
-                alt="Sayin Properties Logo"
-                width={44}
-                height={44}
-                className="w-6 h-6"
-              />
-              <div className="text-xl font-bold">
-                Sayin
-                <span className="text-secondary-500 font-light hover:!text-primary-300">
-                  &nbsp;&nbsp;Properties Limited
-                </span>
-              </div>
-            </div>
-          </Link>
-          {isDashboardPage && authUser && (
-            <Button
-              variant="secondary"
-              className="md:ml-4 bg-primary-50 text-primary-700 hover:bg-secondary-500 hover:text-primary-50"
-              onClick={() =>
-                router.push(
-                  authUser.userRole?.toLowerCase() === "manager"
-                    ? "/managers/newproperty"
-                    : "/search"
-                )
-              }
-            >
-              {authUser.userRole?.toLowerCase() === "manager" ? (
-                <>
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden md:block ml-2">Add New Property</span>
-                </>
-              ) : (
-                <>
-                  <Search className="h-4 w-4" />
-                  <span className="hidden md:block ml-2">
-                    Search Properties
-                  </span>
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-        {!isDashboardPage && (
-          <p className="text-primary-200 hidden md:block">
-            Discover your perfect properties with our advanced search today.
-          </p>
-        )}
-        <div className="flex items-center gap-5">
-          {authUser ? (
-            <>
-              {/*<div className="relative hidden md:block">*/}
-              {/*  <MessageCircle className="w-6 h-6 cursor-pointer text-primary-200 hover:text-primary-400" />*/}
-              {/*  <span className="absolute top-0 right-0 w-2 h-2 bg-secondary-700 rounded-full"></span>*/}
-              {/*</div>*/}
-              {/*<div className="relative hidden md:block">*/}
-              {/*  <Bell className="w-6 h-6 cursor-pointer text-primary-200 hover:text-primary-400" />*/}
-              {/*  <span className="absolute top-0 right-0 w-2 h-2 bg-secondary-700 rounded-full"></span>*/}
-              {/*</div>*/}
+  const publicLinks: NavLink[] = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/about", label: "About Us", icon: UserCircle },
+    { href: "/our-solutions", label: "Our Solutions", icon: Briefcase },
+    { href: "/resources", label: "Resources", icon: Files },
+  ];
 
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-2 focus:outline-none">
-                  <Avatar>
-                    <AvatarImage src={authUser.userInfo?.image} />
-                    <AvatarFallback className="bg-primary-600">
-                      {authUser.userRole?.[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <p className="text-primary-200 hidden md:block">
-                    {authUser.userInfo?.name}
-                  </p>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-white text-primary-700">
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:!bg-primary-700 hover:!text-primary-100 font-bold"
-                    onClick={() =>
-                      router.push(
-                        authUser.userRole?.toLowerCase() === "manager"
-                          ? "/managers/properties"
-                          : "/tenants/favorites",
-                        { scroll: false }
-                      )
-                    }
-                  >
-                    Go to Dashboard
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-primary-200" />
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:!bg-primary-700 hover:!text-primary-100"
-                    onClick={() =>
-                      router.push(
-                        `/${authUser.userRole?.toLowerCase()}s/settings`,
-                        { scroll: false }
-                      )
-                    }
-                  >
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:!bg-primary-700 hover:!text-primary-100"
-                    onClick={handleSignOut}
-                  >
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-4">
-                <Link href="/signin">
-                  <Button
-                      variant="ghost"
-                      className="h-11 px-6 text-lg font-medium text-blue-800 hover:bg-blue-50 hover:text-blue-900 rounded-lg transition-colors"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/signup">
-                  <Button
-                      className="h-11 px-8 text-lg font-medium text-white bg-blue-700 hover:bg-blue-800 shadow-lg hover:shadow-blue-500/20 rounded-lg transition-all"
-                  >
-                    Join Now
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 ml-2 -mr-1"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                    >
-                      <path
-                          fillRule="evenodd"
-                          d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                      />
-                    </svg>
-                  </Button>
-                </Link>
+  return (
+      <header
+          className="fixed top-0 left-0 w-full z-50 bg-primary-800/90 backdrop-blur-md border-b border-primary-700/30 shadow-sm"
+          style={{ height: `${NAVBAR_HEIGHT}px` }}
+      >
+        <div className="flex justify-between items-center w-full h-full px-6 lg:px-8 mx-auto max-w-7xl">
+          {/* Left side - Logo and navigation */}
+          <div className="flex items-center gap-6">
+            {isDashboardPage && (
+                <div className="lg:hidden">
+                  <SidebarTrigger />
+                </div>
+            )}
+            <Link href="/" className="flex items-center group">
+              <div className="flex items-center gap-3">
+              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-100 to-secondary-400 font-sligoil">
+                Darubini Screening
+              </span>
               </div>
-            </>
+            </Link>
+            {isDashboardPage && authUser && (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hidden lg:flex items-center gap-2 bg-primary-800/50 hover:bg-primary-800 text-lg text-primary-100 hover:text-white"
+                    onClick={() =>
+                        router.push(
+                            authUser.userRole?.toLowerCase() === "admin" ? "/admin/files" : "/search"
+                        )
+                    }
+                >
+                  {authUser.userRole?.toLowerCase() === "admin" ? (
+                      <>
+                        <Plus className="h-5 w-5" />
+                        <span>New Screening</span>
+                      </>
+                  ) : (
+                      <>
+                        <Search className="h-5 w-5" />
+                        <span>Search</span>
+                      </>
+                  )}
+                </Button>
+            )}
+          </div>
+
+          {/* Center - Public links or Tagline */}
+          {!isDashboardPage && (
+              <div className="hidden md:flex items-center gap-6">
+                {authUser ? (
+                    <p className="text-lg text-primary-200/80 tracking-wider font-geist">
+                      Facilitating Safe Recruitment Decisions
+                    </p>
+                ) : (
+                    <nav className="flex gap-6">
+                      {publicLinks.map((link) =>
+                          link.href === "/resources" ? (
+                              <DropdownMenu key={link.href}>
+                                <DropdownMenuTrigger className="flex items-center gap-2 text-base transition-colors duration-200 focus:outline-none group">
+                                  <link.icon className="h-5 w-5 text-primary-200 group-hover:text-secondary-400" />
+                                  <span
+                                      className={`${
+                                          pathname.startsWith(link.href)
+                                              ? "text-secondary-400 font-semibold"
+                                              : "text-primary-200 group-hover:text-secondary-400"
+                                      }`}
+                                  >
+                          {link.label}
+                        </span>
+                                  <ChevronDown className="h-5 w-5 text-primary-200 group-hover:text-secondary-400" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    className="min-w-[200px] bg-primary-800 border border-primary-700 shadow-lg rounded-lg overflow-hidden"
+                                    align="start"
+                                >
+                                  <DropdownMenuItem
+                                      className="px-4 py-3 text-lg text-primary-100 hover:bg-primary-700 focus:bg-primary-700 cursor-pointer"
+                                      onClick={() => router.push("/resources/blogs")}
+                                  >
+                                    Blog
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                      className="px-4 py-3 text-lg text-primary-100 hover:bg-primary-700 focus:bg-primary-700 cursor-pointer"
+                                      onClick={() => router.push("/resources/contacts")}
+                                  >
+                                    Contacts
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                          ) : (
+                              <Link
+                                  key={link.href}
+                                  href={link.href}
+                                  className={`flex items-center gap-2 text-base transition-colors duration-200 ${
+                                      pathname === link.href
+                                          ? "text-secondary-400 font-semibold"
+                                          : "text-primary-200 hover:text-secondary-400"
+                                  }`}
+                              >
+                                <link.icon className="h-5 w-5" />
+                                {link.label}
+                              </Link>
+                          )
+                      )}
+                    </nav>
+                )}
+              </div>
           )}
+
+          {/* Right side - User controls */}
+          <div className="flex items-center gap-4">
+            {authUser ? (
+                <>
+                  <div className="hidden lg:flex items-center gap-4">
+                    <button className="p-2 rounded-full hover:bg-primary-800/30 transition-colors relative">
+                      <MessageCircle className="w-6 h-6 text-primary-200" />
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-secondary-400 rounded-full"></span>
+                    </button>
+                    <button className="p-2 rounded-full hover:bg-primary-800/30 transition-colors relative">
+                      <Bell className="w-6 h-6 text-primary-200" />
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-secondary-400 rounded-full"></span>
+                    </button>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center gap-2 focus:outline-none group">
+                      <Avatar className="border-2 border-primary-600 group-hover:border-secondary-400 transition-colors">
+                        <AvatarImage src={authUser.userInfo?.image} />
+                        <AvatarFallback className="bg-primary-600 text-primary-100">
+                          {authUser.userInfo?.name?.charAt(0).toUpperCase() ||
+                              authUser.userRole?.[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="hidden lg:flex items-center gap-1">
+                    <span className="text-base font-medium text-primary-100">
+                      {authUser.userInfo?.name || authUser.userRole}
+                    </span>
+                        <ChevronDown className="w-5 h-5 text-primary-300 group-hover:text-secondary-400 transition-colors" />
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        className="min-w-[240px] bg-primary-800 border border-primary-700 shadow-lg rounded-lg overflow-hidden"
+                        align="end"
+                    >
+                      <div className="px-4 py-3 border-b border-primary-700">
+                        <p className="text-base font-medium text-primary-100">
+                          {authUser.userInfo?.name}
+                        </p>
+                        <p className="text-base text-primary-300">
+                          {authUser.userInfo?.email}
+                        </p>
+                      </div>
+                      <DropdownMenuItem
+                          className="px-4 py-3 text-lg text-primary-100 hover:bg-primary-700 focus:bg-primary-700 cursor-pointer"
+                          onClick={() =>
+                              router.push(
+                                  authUser.userRole?.toLowerCase() === "manager"
+                                      ? "/managers/properties"
+                                      : "/tenants/favorites",
+                                  { scroll: false }
+                              )
+                          }
+                      >
+                        Dashboard
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                          className="px-4 py-3 text-lg text-primary-100 hover:bg-primary-700 focus:bg-primary-700 cursor-pointer"
+                          onClick={() =>
+                              router.push(
+                                  `/${authUser.userRole?.toLowerCase()}s/settings`,
+                                  { scroll: false }
+                              )
+                          }
+                      >
+                        Account Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-primary-700" />
+                      <DropdownMenuItem
+                          className="px-4 py-3 text-lg text-red-400 hover:bg-primary-700 focus:bg-primary-700 cursor-pointer"
+                          onClick={handleSignOut}
+                      >
+                        Sign Out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+            ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <Link href="/signin">
+                      <Button
+                          variant="ghost"
+                          className="h-9 px-4 text-lg text-primary-100 hover:bg-primary-800/50 hover:text-white"
+                      >
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link href="/signup">
+                      <Button
+                          className="h-9 px-5 text-lg bg-secondary-500 hover:bg-secondary-600 text-primary-800 font-medium shadow-md hover:shadow-lg transition-all"
+                      >
+                        Get Started
+                      </Button>
+                    </Link>
+                  </div>
+                </>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      </header>
   );
 };
 

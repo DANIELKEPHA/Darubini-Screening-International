@@ -11,8 +11,8 @@ const CallToActionSection = () => {
         {/* Background Image with Gradient Overlay */}
         <div className="absolute inset-0">
           <Image
-              src="/landing-call-to-action.jpg"
-              alt="Luxury apartment building with modern architecture"
+              src="/screening-call-to-action.png"
+              alt="screening-call-to-action"
               fill
               className="object-cover object-center"
               priority
@@ -39,7 +39,7 @@ const CallToActionSection = () => {
                   transition={{ delay: 0.1, duration: 0.5 }}
                   viewport={{ once: true }}
               >
-                Discover Your Perfect <span className="text-primary-400">Rental Home</span>
+                Make Confident <span className="text-primary-400">Hiring Decisions</span>
               </motion.h2>
 
               <motion.p
@@ -49,7 +49,7 @@ const CallToActionSection = () => {
                   transition={{ delay: 0.2, duration: 0.5 }}
                   viewport={{ once: true }}
               >
-                Exclusive access to premium properties in the most sought-after neighborhoods.
+                Access trusted background checks, employee verification, and compliance insights—faster and easier than ever.
               </motion.p>
             </div>
 
@@ -62,17 +62,17 @@ const CallToActionSection = () => {
                 viewport={{ once: true }}
             >
               <Link
-                  href="/search"
+                  href="/services"
                   className="px-8 py-4 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl text-center"
               >
-                Browse Listings
+                Explore Services
               </Link>
 
               <Link
                   href="/contact"
                   className="px-8 py-4 bg-transparent border-2 border-white hover:bg-white/10 text-white font-semibold rounded-lg transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl text-center"
               >
-                Speak to an Agent
+                Talk to an Expert
               </Link>
             </motion.div>
           </div>
@@ -85,20 +85,28 @@ const CallToActionSection = () => {
               transition={{ delay: 0.4, duration: 0.5 }}
               viewport={{ once: true }}
           >
-            <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold text-primary-400">500+</div>
-              <div>Properties Available</div>
+            <div className="flex flex-wrap items-center gap-4 md:gap-6">
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold text-primary-400">10K+</div>
+                <div>Screenings Completed</div>
+              </div>
+              <div className="hidden md:block h-6 w-px bg-white/30"></div>
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold text-primary-400">98%</div>
+                <div>Client Satisfaction</div>
+              </div>
+              <div className="hidden md:block h-6 w-px bg-white/30"></div>
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold text-primary-400">24/7</div>
+                <div>Secure Access</div>
+              </div>
+              <div className="hidden md:block h-6 w-px bg-white/30"></div>
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold text-primary-400">ISO</div>
+                <div>9001 : 2015 Certified</div>
+              </div>
             </div>
-            <div className="hidden md:block h-6 w-px bg-white/30"></div>
-            <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold text-primary-400">98%</div>
-              <div>Client Satisfaction</div>
-            </div>
-            <div className="hidden md:block h-6 w-px bg-white/30"></div>
-            <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold text-primary-400">24/7</div>
-              <div>Support Available</div>
-            </div>
+
           </motion.div>
         </motion.div>
       </section>

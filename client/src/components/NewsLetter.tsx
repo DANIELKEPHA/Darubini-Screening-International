@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth';
 import { useCreateContactMutation } from '@/state/api';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
+import { Check, ChevronRight, Loader2, Star } from 'lucide-react';
 
 // Form validation schema
 const formSchema = z.object({
@@ -33,11 +34,13 @@ const NewsLetter = () => {
 
     // Interests options
     const interestOptions = [
-        { id: 'market-trends', label: 'Market Trends' },
-        { id: 'investment-tips', label: 'Investment Tips' },
-        { id: 'property-listings', label: 'New Listings' },
-        { id: 'interior-design', label: 'Interior Design' },
-        { id: 'neighborhood-guides', label: 'Neighborhood Guides' },
+        { id: 'employee-screening', label: 'Employee Screening' },
+        { id: 'criminal-checks', label: 'Criminal Background Checks' },
+        { id: 'education-verification', label: 'Education & Credential Checks' },
+        { id: 'reference-checks', label: 'Reference Checks' },
+        { id: 'compliance-updates', label: 'HR & Compliance Updates' },
+        { id: 'industry-insights', label: 'Industry Insights' },
+        { id: 'fraud-prevention', label: 'Fraud & Identity Risk Tips' },
     ];
 
     // Fetch user session on mount
@@ -46,14 +49,11 @@ const NewsLetter = () => {
             try {
                 const session = await fetchAuthSession({ forceRefresh: true });
                 const user = await getCurrentUser();
-                // Stricter validation for userId
                 const tenantCognitoId = user.userId.trim() !== '' ? user.userId : null;
                 const email = session.tokens?.idToken?.payload?.email as string | undefined;
 
-                console.log('Fetched user info:', { tenantCognitoId, email, rawUserId: user.userId, fullUser: user });
                 setUserInfo({ tenantCognitoId, email: email || null });
-            } catch (error: any) {
-                console.log('No user session found, allowing unauthenticated submission:', { error: error.message, errorDetails: error });
+            } catch (error) {
                 setUserInfo({ tenantCognitoId: null, email: null });
             } finally {
                 setIsLoadingSession(false);
@@ -69,6 +69,7 @@ const NewsLetter = () => {
         formState: { errors },
         reset,
         setValue,
+        watch,
     } = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -88,95 +89,96 @@ const NewsLetter = () => {
     }, [userInfo.email, setValue]);
 
     const onSubmit: SubmitHandler<FormData> = async (data) => {
-        let cognitoId: string | null = null;
-
         try {
-            if (userInfo?.tenantCognitoId && userInfo.tenantCognitoId.trim() !== '') {
-                cognitoId = userInfo.tenantCognitoId;
-            }
-
             const payload = {
                 ...data,
-                cognitoId, // Changed from tenantCognitoId
+                cognitoId: userInfo?.tenantCognitoId || null,
                 interests: data.interests.join(', '),
                 message: data.message || '',
             };
 
-            console.log('Submitting payload:', payload, { userInfo });
-
             await createContact(payload).unwrap();
-
             reset();
             toast.success('Subscription successful! Check your email for confirmation.');
-        } catch (error: any) {
-            console.error('Submission error:', error, { userInfo, payload: { ...data, cognitoId } });
-            toast.error(error?.data?.message || 'Failed to subscribe. Please try again.');
+        } catch (error) {
+            toast.error('Failed to subscribe. Please try again.');
         }
     };
 
     return (
-        <div className="relative py-20 bg-white overflow-hidden">
+        <div className="relative bg-gradient-to-b from-primary-50 to-white py-24 overflow-hidden">
             <Toaster position="top-right" />
 
-            <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-                <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
-                    <div>
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                            Join Our Exclusive <span className="text-blue-600">Real Estate</span> Community
+            {/* Decorative elements */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                <div className="absolute top-20 -left-20 w-96 h-96 bg-primary-100 rounded-full opacity-20 blur-3xl"></div>
+                <div className="absolute bottom-10 -right-20 w-96 h-96 bg-primary-200 rounded-full opacity-20 blur-3xl"></div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div className="grid lg:grid-cols-2 gap-16 items-center">
+                    {/* Content Section */}
+                    <div className="max-w-2xl">
+                        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+                            Join Our <span className="text-primary-500">Trusted</span> Screening Network
                         </h2>
-                        <p className="text-lg text-gray-600 mb-6">
-                            Get curated property insights, market updates, and exclusive listings delivered straight to your inbox.
+
+                        <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                            Get curated screening insights, compliance updates, and risk management tips delivered to your inbox weekly.
                         </p>
 
-                        <div className="space-y-4">
-                            <div className="flex items-start">
-                                <div className="flex-shrink-0 mt-1">
-                                    <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
+                        <div className="space-y-5 mb-10">
+                            {[
+                                "Weekly updates on screening regulations and compliance",
+                                "Insights into hiring trends and risk mitigation strategies",
+                                "Tips for improving your background check processes",
+                                "Case studies on successful client verifications",
+                                "Exclusive access to industry reports and fraud alerts"
+                            ].map((item, index) => (
+                                <div key={index} className="flex items-start">
+                                    <div className="flex-shrink-0 mt-1">
+                                        <Check className="h-6 w-6 text-primary-500" />
+                                    </div>
+                                    <p className="ml-3 text-lg text-gray-700">{item}</p>
                                 </div>
-                                <p className="ml-3 text-gray-700">
-                                    Weekly market analysis reports
-                                </p>
+                            ))}
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-3 gap-4 max-w-md">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center">
+                                <div className="text-2xl font-bold text-primary-500">15K+</div>
+                                <div className="text-sm text-gray-500">Subscribers</div>
                             </div>
-                            <div className="flex items-start">
-                                <div className="flex-shrink-0 mt-1">
-                                    <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <p className="ml-3 text-gray-700">
-                                    First access to off-market properties
-                                </p>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center">
+                                <div className="text-2xl font-bold text-primary-500">92%</div>
+                                <div className="text-sm text-gray-500">Satisfaction</div>
                             </div>
-                            <div className="flex items-start">
-                                <div className="flex-shrink-0 mt-1">
-                                    <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <p className="ml-3 text-gray-700">
-                                    Expert investment advice
-                                </p>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center">
+                                <div className="text-2xl font-bold text-primary-500">24h</div>
+                                <div className="text-sm text-gray-500">Avg. Response</div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 sm:p-10">
-                        <div className="text-center mb-6">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                                Subscribe Now
-                            </h3>
-                            <p className="text-gray-600">
-                                Join 15,000+ subscribers getting premium insights
-                            </p>
-                        </div>
+                    {/* Form Section */}
+                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                        <div className="p-1 bg-gradient-to-r from-primary-500 to-primary-600"></div>
 
-                        <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                            <div className="grid gap-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="p-8 sm:p-10">
+                            <div className="text-center mb-8">
+                                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                                    Get Started
+                                </h3>
+                                <p className="text-gray-600">
+                                    Join our growing community of employers and professionals who care about safe, smart hiring.
+                                </p>
+                            </div>
+
+                            <form onSubmit={handleSubmit(onSubmit)} noValidate>
+                                <div className="space-y-6">
                                     <div>
-                                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                                             Full Name
                                         </label>
                                         <input
@@ -184,18 +186,17 @@ const NewsLetter = () => {
                                             id="name"
                                             placeholder="Daniel Kepha"
                                             {...register('name')}
-                                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                            className={`w-full px-4 py-3 text-gray-900 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all ${
                                                 errors.name ? 'border-red-500' : 'border-gray-300'
                                             }`}
-                                            aria-invalid={errors.name ? 'true' : 'false'}
                                         />
                                         {errors.name && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                                            <p className="mt-2 text-sm text-red-600">{errors.name.message}</p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                                             Email Address
                                         </label>
                                         <input
@@ -203,178 +204,174 @@ const NewsLetter = () => {
                                             id="email"
                                             placeholder="your@email.com"
                                             {...register('email')}
-                                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                            className={`w-full px-4 py-3 text-gray-900 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all ${
                                                 errors.email ? 'border-red-500' : 'border-gray-300'
                                             }`}
-                                            aria-invalid={errors.email ? 'true' : 'false'}
                                         />
                                         {errors.email && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                                            <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
                                         )}
                                     </div>
-                                </div>
 
-                                <div>
-                                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Your Message (Optional)
-                                    </label>
-                                    <textarea
-                                        id="message"
-                                        placeholder="Share any specific requests or comments..."
-                                        {...register('message')}
-                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                            errors.message ? 'border-red-500' : 'border-gray-300'
-                                        }`}
-                                        rows={4}
-                                        aria-invalid={errors.message ? 'true' : 'false'}
-                                    />
-                                    {errors.message && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        What interests you? (Select at least one)
-                                    </label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        {interestOptions.map((interest) => (
-                                            <label key={interest.id} className="flex items-center space-x-2">
-                                                <input
-                                                    type="checkbox"
-                                                    value={interest.id}
-                                                    {...register('interests')}
-                                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                                />
-                                                <span className="text-sm text-gray-700">{interest.label}</span>
-                                            </label>
-                                        ))}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            What are you interested in?
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {interestOptions.map((interest) => (
+                                                <label key={interest.id} className="relative flex items-start">
+                                                    <input
+                                                        type="checkbox"
+                                                        value={interest.id}
+                                                        {...register('interests')}
+                                                        className="peer h-5 w-5 rounded border-gray-300 text-primary-500 focus:ring-primary-500 absolute opacity-0"
+                                                    />
+                                                    <div className="w-full min-h-10 p-3 border border-gray-300 rounded-lg peer-checked:border-primary-500 peer-checked:bg-primary-50 peer-checked:ring-1 peer-checked:ring-primary-500 transition-all">
+                                                        <div className="flex items-center">
+                                                            <div className="flex-shrink-0 h-5 w-5 rounded border border-gray-300 bg-white flex items-center justify-center mr-3 peer-checked:bg-primary-500 peer-checked:border-primary-500 transition-colors">
+                                                                <Check className="h-3 w-3 text-white hidden peer-checked:block" />
+                                                            </div>
+                                                            <span className="text-sm font-medium text-gray-700">{interest.label}</span>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {errors.interests && (
+                                            <p className="mt-2 text-sm text-red-600">{errors.interests.message}</p>
+                                        )}
                                     </div>
-                                    {errors.interests && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.interests.message}</p>
-                                    )}
-                                </div>
 
-                                <div>
+                                    <div>
+                                        <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Additional Notes (Optional)
+                                        </label>
+                                        <textarea
+                                            id="message"
+                                            placeholder="Tell us about your interests or questions..."
+                                            {...register('message')}
+                                            className={`w-full px-4 py-3 text-gray-900 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all ${
+                                                errors.message ? 'border-red-500' : 'border-gray-300'
+                                            }`}
+                                            rows={3}
+                                        />
+                                        {errors.message && (
+                                            <p className="mt-2 text-sm text-red-600">{errors.message.message}</p>
+                                        )}
+                                    </div>
+
                                     <div className="flex items-start">
                                         <div className="flex items-center h-5">
                                             <input
                                                 id="privacyConsent"
                                                 type="checkbox"
                                                 {...register('privacyConsent')}
-                                                className={`h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${
+                                                className={`h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500 ${
                                                     errors.privacyConsent ? 'border-red-500' : ''
                                                 }`}
-                                                aria-invalid={errors.privacyConsent ? 'true' : 'false'}
                                             />
                                         </div>
                                         <label htmlFor="privacyConsent" className="ml-3 text-sm text-gray-600">
                                             I agree to the{' '}
-                                            <a href="/privacy" className="text-blue-600 hover:underline">
+                                            <a href="/privacy" className="text-primary-500 hover:underline font-medium">
                                                 Privacy Policy
                                             </a>{' '}
                                             and consent to receiving communications.
                                         </label>
                                     </div>
                                     {errors.privacyConsent && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.privacyConsent.message}</p>
+                                        <p className="text-sm text-red-600">{errors.privacyConsent.message}</p>
                                     )}
+
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting || isLoadingSession}
+                                        className={`w-full py-4 px-6 inline-flex justify-center items-center gap-x-3 text-base font-semibold rounded-lg border border-transparent bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-md ${
+                                            isSubmitting || isLoadingSession ? 'cursor-not-allowed' : ''
+                                        }`}
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : isLoadingSession ? (
+                                            'Loading...'
+                                        ) : (
+                                            <>
+                                                Join Now <ChevronRight className="h-5 w-5" />
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
+                            </form>
 
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting || isLoadingSession}
-                                    className={`w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none transition-colors ${
-                                        isSubmitting || isLoadingSession ? 'cursor-not-allowed' : ''
-                                    }`}
-                                >
-                                    {isSubmitting ? (
-                                        <>
-                                            <span className="animate-spin inline-block w-4 h-4 border-[3px] border-current border-t-transparent text-white rounded-full"></span>
-                                            Processing...
-                                        </>
-                                    ) : isLoadingSession ? (
-                                        'Loading...'
-                                    ) : (
-                                        'Get Exclusive Access'
-                                    )}
-                                </button>
+                            <div className="mt-6 text-center text-sm text-gray-500">
+                                <p>We respect your privacy. Unsubscribe anytime.</p>
                             </div>
-                        </form>
-
-                        <div className="mt-6 text-center text-sm text-gray-500">
-                            <p>Unsubscribe anytime. We respect your privacy.</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Testimonials Section */}
-                <div className="mt-16">
-                    <h3 className="text-center text-2xl font-bold text-gray-900 mb-8">
-                        What Our Subscribers Say
+                <div className="mt-24">
+                    <h3 className="text-center text-3xl font-bold text-gray-900 mb-12">
+                        Trusted by Employers and Hiring Professionals
                     </h3>
-                    <div className="grid md:grid-cols-3 gap-8">
-                        <div className="bg-gray-50 p-6 rounded-lg">
-                            <div className="flex items-center mb-4">
-                                <div className="flex-shrink-0">
-                                    <Image
-                                        src="/placeholder-avatar1.png"
-                                        alt="Sarah J."
-                                        width={40}
-                                        height={40}
-                                        className="rounded-full"
-                                    />
-                                </div>
-                                <div className="ml-3">
-                                    <h4 className="font-medium text-gray-900">K Daniel</h4>
-                                    <p className="text-sm text-gray-500">Investor</p>
-                                </div>
-                            </div>
-                            <p className="text-gray-700">
-                                &#34;The market reports helped me identify the perfect time to buy my first investment property. Made a 20% ROI in the first year!&#34;
-                            </p>
-                        </div>
-                        <div className="bg-gray-50 p-6 rounded-lg">
-                            <div className="flex items-center mb-4">
-                                <div className="flex-shrink-0">
-                                    <Image
-                                        src="/placeholder-avatar2.png"
-                                        alt="K Daniel"
-                                        width={40}
-                                        height={40}
-                                        className="rounded-full"
-                                    />
-                                </div>
-                                <div className="ml-3">
-                                    <h4 className="font-medium text-gray-900">Kepha Daniel</h4>
-                                    <p className="text-sm text-gray-500">First-time Buyer</p>
-                                </div>
-                            </div>
-                            <p className="text-gray-700">
-                                &#34;Got access to a property before it hit the market. The neighborhood guides were incredibly helpful in making our decision.&#34;
-                            </p>
-                        </div>
-                        <div className="bg-gray-50 p-6 rounded-lg">
-                            <div className="flex items-center mb-4">
-                                <div className="flex-shrink-0">
-                                    <Image
-                                        src="/placeholder-avatar3.png"
-                                        alt="Daniel K."
-                                        width={40}
-                                        height={40}
-                                        className="rounded-full"
-                                    />
 
+                    <div className="grid md:grid-cols-3 gap-8">
+                        {[
+                            {
+                                name: "Daniel Kepha",
+                                role: "HR Manager, Tech Startup",
+                                content:
+                                    "Darubini's background checks are thorough and fast. We’ve made smarter hiring decisions and avoided costly mistakes.",
+                                image: "/placeholder-avatar1.png",
+                            },
+                            {
+                                name: "Sarah Johnson",
+                                role: "Recruiter, Healthcare Sector",
+                                content:
+                                    "The education and reference verification tools saved me hours. It’s now a must-have in our hiring process.",
+                                image: "/placeholder-avatar2.png",
+                            },
+                            {
+                                name: "Michael Chen",
+                                role: "Compliance Officer",
+                                content:
+                                    "I rely on Darubini’s updates to stay informed on changing screening laws and best practices. It’s an incredible resource.",
+                                image: "/placeholder-avatar3.png",
+                            },
+                        ].map((testimonial, index) => (
+                            <div
+                                key={index}
+                                className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                            >
+                                <div className="flex items-center mb-6">
+                                    <div className="flex-shrink-0">
+                                        <div className="h-14 w-14 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
+                                            <Image
+                                                src={testimonial.image}
+                                                alt={testimonial.name}
+                                                width={56}
+                                                height={56}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="ml-4">
+                                        <h4 className="font-bold text-gray-900">{testimonial.name}</h4>
+                                        <p className="text-sm text-primary-500">{testimonial.role}</p>
+                                    </div>
                                 </div>
-                                <div className="ml-3">
-                                    <h4 className="font-medium text-gray-900">Daniel K.</h4>
-                                    <p className="text-sm text-gray-500">Real Estate Agent</p>
+                                <p className="text-gray-700 italic">"{testimonial.content}"</p>
+                                <div className="mt-4 flex items-center">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star key={i} className="h-5 w-5 text-secondary-400 fill-current" />
+                                    ))}
                                 </div>
                             </div>
-                            <p className="text-gray-700">
-                                &#34;The investment tips have been invaluable for my clients. I regularly share insights from the newsletter in my consultations.&#34;
-                            </p>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </div>

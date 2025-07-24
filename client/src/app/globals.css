@@ -14,7 +14,7 @@ body,
 .app {
   height: 100%;
   width: 100%;
-  @apply text-sm;
+  @apply text-sm font-geist; /* Use Geist Sans as default font */
   @apply bg-white;
   @apply dark:bg-black;
 }
@@ -137,7 +137,7 @@ body,
   @apply text-xs text-primary-500 font-normal;
 }
 
-/* scrollbar styling */
+/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 5px;
 }
@@ -160,7 +160,7 @@ body,
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-geist; /* Use Geist Sans as default */
   }
 }
 
@@ -168,7 +168,7 @@ body,
 [data-amplify-authenticator] {
   --amplify-components-button-primary-background-color: var(--primary);
   --amplify-components-button-primary-hover-background-color: hsl(
-    var(--primary) / 0.9
+          var(--primary) / 0.9
   );
   --amplify-components-button-border-radius: var(--radius);
   --amplify-components-fieldcontrol-border-radius: var(--radius);
@@ -206,7 +206,7 @@ body,
   margin-top: 1rem;
   background-color: hsl(var(--primary)) !important;
   color: hsl(var(--primary-foreground)) !important;
-  @apply font-medium;
+  @apply font-medium font-geist; /* Use Geist Sans for buttons */
   @apply text-sm;
 }
 
@@ -228,7 +228,7 @@ body,
 }
 
 [data-amplify-authenticator] .amplify-label {
-  @apply text-sm font-medium;
+  @apply text-sm font-medium font-geist; /* Use Geist Sans for labels */
   color: hsl(var(--foreground));
 }
 
@@ -236,7 +236,7 @@ body,
   border-color: hsl(var(--input));
   border-radius: var(--radius);
   height: 2.5rem;
-  @apply text-sm;
+  @apply text-sm font-geist; /* Use Geist Sans for select */
 }
 
 [data-amplify-authenticator] .amplify-text--error {
@@ -245,5 +245,5 @@ body,
 
 /* Sonner Toast Styles */
 [data-close-button="true"] {
-  @apply bg-background border-border text-foreground hover:bg-muted;
+  @apply bg-background border-border text-foreground hover:bg-muted font-geist; /* Use Geist Sans for toasts */
 }

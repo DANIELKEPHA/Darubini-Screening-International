@@ -1,19 +1,21 @@
 import React from "react";
 import HeroSection from "./HeroSection";
-import FeaturesSection from "./FeaturesSection";
-import DiscoverSection from "./DiscoverSection";
 import CallToActionSection from "./CallToActionSection";
 import FooterSection from "./FooterSection";
 import NewsLetter from "@/components/NewsLetter";
+import MissionSection from "@/app/(nondashboard)/landing/MissionSection";
+import ServicesSection from "@/app/(nondashboard)/landing/ServicesSection";
+import BlogSection from "./BlogSection";
 
 const Landing = () => {
   return (
     <div>
       <HeroSection />
-      <FeaturesSection />
-      <DiscoverSection />
+      <MissionSection/>
+      <ServicesSection/>
+      <BlogSection />
       <CallToActionSection />
-        <NewsLetter/>
+      <NewsLetter/>
       <FooterSection />
     </div>
   );

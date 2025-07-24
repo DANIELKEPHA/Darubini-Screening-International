@@ -1,33 +1,32 @@
 "use client";
 
 import React from "react";
-
+import { motion } from "framer-motion";
 import FooterSection from "@/app/(nondashboard)/landing/FooterSection";
 import NewsLetter from "@/components/NewsLetter";
-import About from "@/app/(nondashboard)/about/About";
-import BreadCrumb from "@/components/BreadCrumb";
+import AboutHero from "@/app/(nondashboard)/about/AboutHero";
 import Mission from "@/app/(nondashboard)/about/Mission";
-import AboutCard from "@/app/(nondashboard)/about/AboutCard";
+import AboutCards from "@/app/(nondashboard)/about/AboutCards";
+import TeamSection from "@/app/(nondashboard)/about/TeamSection";
 
-const SearchPage = () => {
+const AboutPage = () => {
     return (
-        <div className="w-full min-h-screen flex flex-col bg-white">
-            <main className="flex flex-col flex-1">
-                <BreadCrumb
-                    items={[
-                        { label: 'Black Gold Africa', href: '/' },
-                        { label: 'About us', href: '/about' },
-
-                    ]}
-                />
-                <About />
-                <AboutCard/>
+        <div className="w-full min-h-screen flex flex-col bg-primary-50">
+            <motion.main
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col flex-1"
+            >
+                <AboutHero />
+                <AboutCards />
                 <Mission />
-                <NewsLetter/>
+                <TeamSection/>
+                <NewsLetter />
                 <FooterSection />
-            </main>
+            </motion.main>
         </div>
     );
 };
 
-export default SearchPage;
+export default AboutPage;

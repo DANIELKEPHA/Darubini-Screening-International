@@ -184,7 +184,7 @@ const Mission = () => {
 
                         <h4 className="text-lg font-semibold text-primary-700 mb-2">Tailored Screening for Every Industry</h4>
                         <p className="text-gray-700 leading-relaxed">
-                            We understand that different sectors require different levels of scrutiny. Whether it’s the financial sector, healthcare, education, legal, hospitality, or domestic employment, we customize our vetting procedures to meet each industry's unique compliance standards and risk profiles.
+                            We understand that different sectors require different levels of scrutiny. Whether it’s the financial sector, healthcare, education, legal, hospitality, or domestic employment, we customize our vetting procedures to meet each industry&#39;s unique compliance standards and risk profiles.
                         </p>
                     </motion.div>
 

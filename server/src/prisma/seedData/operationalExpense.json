@@ -1,0 +1,80 @@
+[
+{
+"createdByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"approvedByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"agentName": "Mercy Ngeru",
+"kraPin": "A123456789B",
+"date": "2025-08-13T00:00:00.000Z",
+"expenseDetails": "Office rent",
+"expenseName": "Rent",
+"institutionName": "City Properties",
+"reasonForPayment": "Monthly office rent",
+"frequency": "MONTHLY",
+"paymentMode": "BANK_DEPOSIT",
+"paymentModeDescription": "Bank transfer to City Properties",
+"amount": 50000.00,
+"currency": "KES",
+"totalAmountPaid": 58000.00,
+"supplier": {
+"connect": { "id": 1 }
+},
+"paymentStatus": "PENDING",
+"createdAt": "2025-08-13T12:00:00.000Z",
+"updatedAt": "2025-08-13T12:00:00.000Z",
+"adminOperationalExpenses": {
+"connect": [{ "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }]
+},
+"userOperationalExpenses": {
+"connect": [{ "cognitoId": "817b3540-a061-707b-742a-a28391181149" }]
+},
+"adminApprovals": {
+"connect": [{ "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }]
+},
+"userApprovals": {
+"connect": []
+}
+},
+{
+"createdByStaff": {
+"connect": { "cognitoId": "staff1-1234-5678-9012-345678901234" }
+},
+"approvedByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"agentName": "Jackie Chan",
+"kraPin": "B987654321C",
+"date": "2025-08-14T00:00:00.000Z",
+"expenseDetails": "Software subscription",
+"expenseName": "Subscription",
+"institutionName": "Tech Solutions Inc.",
+"reasonForPayment": "Annual software license",
+"frequency": "YEARLY",
+"paymentMode": "VISA_CARD",
+"paymentModeDescription": "Paid via Visa card ending in 1234",
+"amount": 1000.00,
+"currency": "USD",
+"totalAmountPaid": 1160.00,
+"supplier": {
+"connect": { "id": 2 }
+},
+"paymentStatus": "PENDING",
+"createdAt": "2025-08-14T10:00:00.000Z",
+"updatedAt": "2025-08-14T10:00:00.000Z",
+"adminOperationalExpenses": {
+"connect": [{ "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }]
+},
+"userOperationalExpenses": {
+"connect": [{ "cognitoId": "817b3540-a061-707b-742a-a28391181149" }]
+},
+"adminApprovals": {
+"connect": [{ "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }]
+},
+"userApprovals": {
+"connect": []
+}
+}
+]

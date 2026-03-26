@@ -1,0 +1,88 @@
+[
+{
+"createdByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"approvedByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"agentName": "Agent Smith",
+"kraPin": "A123456789B",
+"candidateName": "John Doe",
+"clientName": "XYZ Corp",
+"date": "2025-08-13T00:00:00.000Z",
+"expenseDetails": "Background check",
+"expenseCheck": "IDENTITY",
+"expenseDescription": "ID verification for John Doe",
+"institutionName": "National ID Service",
+"paymentMode": "MPESA_PAYBILL",
+"paymentModeDescription": "M-Pesa Paybill 123456",
+"amount": 2000.00,
+"currency": "KES",
+"totalAmountPaid": 2320.00,
+"supplier": {
+"connect": { "id": 1 }
+},
+"paymentStatus": "PENDING",
+"createdAt": "2025-08-13T12:00:00.000Z",
+"updatedAt": "2025-08-13T12:00:00.000Z",
+"proofFiles": {
+"create": []
+},
+"adminClientExpenses": {
+"connect": [{ "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }]
+},
+"userClientExpenses": {
+"connect": [{ "cognitoId": "817b3540-a061-707b-742a-a28391181149" }]
+},
+"adminApprovals": {
+"connect": [{ "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }]
+},
+"userApprovals": {
+"connect": []
+}
+},
+{
+"createdByAccounts": {
+"connect": { "cognitoId": "acc1-1234-5678-9012-345678901234" }
+},
+"approvedByUser": {
+"connect": { "cognitoId": "817b3540-a061-707b-742a-a28391181149" }
+},
+"agentName": "Agent Brown",
+"kraPin": "B987654321A",
+"candidateName": "Jane Roe",
+"clientName": "ABC Ltd",
+"date": "2025-08-14T00:00:00.000Z",
+"expenseDetails": "Criminal record check",
+"expenseCheck": "PCC_FAST_TRACK",
+"expenseDescription": "Criminal background verification for Jane Roe",
+"institutionName": "Police Clearance Service",
+"paymentMode": "BANK_DEPOSIT",
+"paymentModeDescription": "Bank transfer to Police Clearance Service",
+"amount": 5000.00,
+"currency": "KES",
+"totalAmountPaid": 5800.00,
+"supplier": {
+"connect": { "id": 2 }
+},
+"paymentStatus": "PAID",
+"createdAt": "2025-08-14T09:00:00.000Z",
+"updatedAt": "2025-08-14T10:00:00.000Z",
+"proofFiles": {
+"connect": [{ "s3Key": "proofs/expense_2_proof.pdf" }]
+},
+"adminClientExpenses": {
+"connect": [{ "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }]
+},
+"userClientExpenses": {
+"connect": []
+},
+"adminApprovals": {
+"connect": []
+},
+"userApprovals": {
+"connect": [{ "cognitoId": "817b3540-a061-707b-742a-a28391181149" }]
+}
+}
+]

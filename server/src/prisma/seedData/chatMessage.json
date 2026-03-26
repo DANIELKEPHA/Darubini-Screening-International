@@ -1,0 +1,20 @@
+[
+  {
+    "roomId": 1,
+    "senderType": "GUEST",
+    "senderId": "1",
+    "content": "Hi, I'm just browsing and had a question."
+  },
+  {
+    "roomId": 1,
+    "senderType": "ADMIN",
+    "senderId": "14182448-5061-70ad-1f29-cffef1e1b05a",
+    "content": "Hi! Sure, how can I help you?"
+  },
+  {
+    "roomId": 2,
+    "senderType": "USER",
+    "senderId": "817b3540-a061-707b-742a-a28391181149",
+    "content": "Do you offer customer support on weekends?"
+  }
+]

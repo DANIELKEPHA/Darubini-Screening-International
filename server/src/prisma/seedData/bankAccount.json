@@ -1,0 +1,28 @@
+[
+  {
+    "bankName": "Example Bank",
+    "accountNumber": "1234567890",
+    "currency": "USD",
+    "balance": 10000.0,
+    "createdByAdmin": {
+      "connect": {
+        "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a"
+      }
+    },
+    "createdAt": "2025-09-08T10:00:00.000Z",
+    "updatedAt": "2025-09-08T10:00:00.000Z"
+  },
+  {
+    "bankName": "Second Bank",
+    "accountNumber": "9876543210",
+    "currency": "USD",
+    "balance": 5000.0,
+    "createdByAccounts": {
+      "connect": {
+        "cognitoId": "acc1-1234-5678-9012-345678901234"
+      }
+    },
+    "createdAt": "2025-09-08T10:00:00.000Z",
+    "updatedAt": "2025-09-08T10:00:00.000Z"
+  }
+]

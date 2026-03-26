@@ -1,0 +1,37 @@
+[
+{
+"expenseType": "CLIENT",
+"s3Key": "proofs/expense_2_proof.pdf",
+"url": "https://your-s3-bucket.s3.amazonaws.com/proofs/expense_2_proof.pdf",
+"uploadedByAccounts": {
+"connect": { "cognitoId": "acc1-1234-5678-9012-345678901234" }
+},
+"createdByAccounts": {
+"connect": { "cognitoId": "acc1-1234-5678-9012-345678901234" }
+},
+"createdAt": "2025-08-14T10:00:00.000Z"
+},
+{
+"expenseType": "OPERATIONAL",
+"s3Key": "proofs/expense_operational_1.pdf",
+"url": "https://your-s3-bucket.s3.amazonaws.com/proofs/expense_operational_1.pdf",
+"uploadedByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"createdByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"createdAt": "2025-08-13T12:00:00.000Z"
+},
+{
+"s3Key": "proofs/quotation/2025/0001.pdf",
+"url": "https://your-s3-bucket.s3.amazonaws.com/proofs/quotation/2025/0001.pdf",
+"uploadedByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"createdByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"createdAt": "2025-08-13T12:00:00.000Z"
+}
+]

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Next.js build output
+.next/
+out/
+
+# Production builds
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files (keep yours)
+.idea/
+.vscode/
+/shelf/
+/workspace.xml
+
+# Database files
+*.sqlite
+*.db
+
+# Next.js build output
+
+# Development caches
+.next/dev/cache/

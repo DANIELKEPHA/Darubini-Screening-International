@@ -1,0 +1,23 @@
+[
+  {
+    "title": "Welcome to Our Platform",
+    "slug": "welcome-to-our-platform",
+    "content": "This is our first blog post. We’re excited to share updates with you.",
+    "coverImage": "https://your-s3-bucket.s3.amazonaws.com/blogs/welcome-cover.jpg",
+    "videoUrl": "https://your-s3-bucket.s3.amazonaws.com/blogs/welcome-video.mp4",
+    "published": true,
+    "tags": ["intro", "company"],
+    "adminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a"
+  },
+  {
+    "title": "How Our Services Work",
+    "slug": "how-our-services-work",
+    "content": "In this blog, we explain the core functionality...",
+    "coverImage": "/uploads/blogs/how-it-works.jpg",
+    "videoUrl": null,
+    "published": false,
+    "tags": ["services", "how-to"],
+    "adminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a"
+  }
+]
+

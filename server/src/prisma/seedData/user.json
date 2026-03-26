@@ -1,0 +1,17 @@
+[
+  {
+    "cognitoId": "817b3540-a061-707b-742a-a28391181149",
+    "name": "Jackie Chan",
+    "email": "jackie.white@darubiniscreening.com",
+    "phoneNumber": "+1 (555) 555-6666",
+    "role": "USER"
+  },
+  {
+    "cognitoId": "us-east-2:87654321-90ab-cdef-1234-567890abcdef",
+    "name": "Daniel Kepha",
+    "email": "danielkepha199@example.com",
+    "phoneNumber": "+1 (555) 333-4444",
+    "role": "USER"
+  }
+
+]

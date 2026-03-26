@@ -1,0 +1,12 @@
+[
+  {
+    "createdAt": "2025-07-25T10:00:00Z",
+    "guestUserId": 1,
+    "adminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a"
+  },
+  {
+    "createdAt": "2025-07-25T11:00:00Z",
+    "userCognitoId": "817b3540-a061-707b-742a-a28391181149",
+    "adminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a"
+  }
+]

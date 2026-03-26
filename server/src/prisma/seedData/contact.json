@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Site Visitor",
+    "email": "visitor@example.com",
+    "message": "I'm interested in your services.",
+    "interests": "Background checks, due diligence",
+    "privacyConsent": true,
+    "userCognitoId": "817b3540-a061-707b-742a-a28391181149"
+  },
+  {
+    "name": "Anonymous Lead",
+    "email": "lead@example.com",
+    "privacyConsent": true
+  }
+]
+

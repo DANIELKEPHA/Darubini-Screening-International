@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Mercy Ngeru",
+    "email": "mercy@example.com",
+    "phoneNumber": "+254712345678",
+    "createdAt": "2025-07-25T10:00:00Z"
+  },
+  {
+    "name": "Mark Guest",
+    "email": "mark@example.com",
+    "phoneNumber": "+254798765432",
+    "createdAt": "2025-07-25T11:30:00Z"
+  }
+]

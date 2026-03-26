@@ -1,0 +1,14 @@
+[
+  {
+    "brevoListId": 1,
+    "name": "Newsletter Subscribers",
+    "adminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a",
+    "createdAt": "2025-07-27T13:00:00.000Z"
+  },
+  {
+    "brevoListId": 2,
+    "name": "Promotional Offers",
+    "adminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a",
+    "createdAt": "2025-07-27T13:00:00.000Z"
+  }
+]

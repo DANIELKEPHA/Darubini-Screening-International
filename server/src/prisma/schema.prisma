@@ -1,0 +1,1121 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+enum SenderType {
+  USER
+  GUEST
+  ADMIN
+  ACCOUNTS
+  STAFF
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum EmailSendStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  FAILED
+  UNSUBSCRIBED
+  SPAM
+}
+
+enum ExpenseType {
+  CLIENT
+  OPERATIONAL
+}
+
+enum ExpenseCheck {
+  IDENTITY
+  ACADEMIC
+  PROFESSIONAL
+  ADDRESS
+  FINGERPRINT
+  PCC_FAST_TRACK
+  CERTIFICATE_VERIFICATION
+  OTHERS
+}
+
+enum PaymentMode {
+  MPESA_PAYBILL
+  BANK_DEPOSIT
+  VISA_CARD
+  CASH
+}
+
+enum Frequency {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  WEEKLY
+  ONCE_OFF
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  CANCELLED
+  DRAFT
+  REJECTED
+}
+
+enum AccountType {
+  RENT_EXPENSE
+  REPAIR_AND_MAINTENANCE
+  SALARIES_AND_EMPLOYEE_WAGES
+  TELEPHONE_EXPENSE
+  TRAVEL_EXPENSE
+  UTILITIES_EXPENSE
+  OFFICE_SUPPLIES_EXPENSE
+  INSURANCE_EXPENSE
+  ADVERTISING_AND_MARKETING_EXPENSE
+  TRAINING_AND_DEVELOPMENT_EXPENSE
+  PROFESSIONAL_FEES
+  DEPRECIATION_EXPENSE
+  BANK_CHARGES_AND_FEES
+  VEHICLE_RUNNING_AND_MAINTENANCE_EXPENSE
+  MISCELLANEOUS_EXPENSE
+}
+
+enum ItemType {
+  GOODS
+  SERVICES
+}
+
+enum QuotationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum UserRole {
+  ADMIN
+  ACCOUNTS
+  STAFF
+  USER
+}
+
+enum AttendanceStatus {
+  CHECKED_IN
+  CHECKED_OUT
+  FLAGGED
+  REJECTED
+}
+
+enum BreakType {
+  TEA_COFFEE
+  LUNCH
+  PRAYER_MEDITATION
+  STRETCH_FRESH_AIR
+  ERRAND
+  FIELD
+  MEETING
+  PERSONAL
+  LEAVE
+  DAY_END
+  TRAINING
+  OFFICIAL_TRAVEL
+  SICK
+  MATERNITY_PATERNITY
+  TEAM_BUILDING
+  COMPENSATORY
+}
+
+enum ClientName {
+  ADM_Wild_Flavors_Kenya_Limited
+  Africa_Banking_Corporation_ABC_Bank
+  African_Population_and_Health_Research_Centre_APHRC
+  Alma_Wangu_Ngare
+  Athena_Lab_Llc
+  Cloudhop
+  Commercial_International_Bank_CIB_Kenya_Limited
+  Dib_Bank_Kenya
+  Digital_Divide_Data_Kenya_Limited_DDD
+  Dp_World
+  Gulf_African_Bank
+  GZI_Kenya_Limited
+  Helium_Health_Limited
+  HF_Group
+  Highlands_Drinks_Limited
+  iCOLO_Limited_Kenya
+  Kenya_Tea_Development_Agency_KTDA
+  Kijani_Holdings_Limited
+  Angrac_Company_Limited
+  Laomai_Limited
+  Kyosk_Digital_Service_Limited
+  Maonga_Ndonye_Associates
+  Maple_Leaf_Educonnect_Limited
+  Motion_Industrial
+  Novartis_Kenya_Limited
+  Ochieng_Abuodha_And_Associates_Limited
+  Planate_Management_Group
+  Riley_Falcon_Security_Services_Limited
+  Rise_And_Learn_Global
+  Salix_Data_Africa_Limited
+  Seamlesshr
+  Strathmore_University
+  Sun_King_Greenlight_Planet
+  Surgipharm
+  Trademark_Africa_Limited
+  Virtual_Pay
+  Zanifu_Limited
+}
+
+enum StickySharePermission {
+  VIEW
+  EDIT
+}
+
+enum AccountStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+model Admin {
+  id                          Int                  @id @default(autoincrement())
+  cognitoId                   String               @unique
+  name                        String
+  email                       String
+  phoneNumber                 String?
+  role                        UserRole             @default(ADMIN)
+  chatRooms                   ChatRoom[]           @relation("AdminChatRooms")
+  blogs                       Blog[]
+  emailCampaigns              EmailCampaign[]      @relation("AdminEmailCampaigns")
+  emailLists                  EmailList[]          @relation("AdminEmailLists")
+  quotations                  Quotation[]          @relation("AdminQuotations")
+  clientExpenses              ClientExpense[]      @relation("AdminClientExpenses")
+  operationalExpenses         OperationalExpense[] @relation("AdminOperationalExpenses")
+  proofFiles                  ProofFile[]          @relation("AdminProofFiles")
+  auditLogs                   AuditLog[]           @relation("AdminAuditLogs")
+  clientExpenseApprovals      ClientExpense[]      @relation("AdminClientExpenseApprovals")
+  operationalExpenseApprovals OperationalExpense[] @relation("AdminOperationalExpenseApprovals")
+  createdQuotations           Quotation[]          @relation("AdminQuotationsCreated")
+  approvedQuotations          Quotation[]          @relation("AdminQuotationsApproved")
+  createdClientExpenses       ClientExpense[]      @relation("AdminClientExpensesCreated")
+  approvedClientExpenses      ClientExpense[]      @relation("AdminClientExpensesApproved")
+  createdOperationalExpenses  OperationalExpense[] @relation("AdminOperationalExpensesCreated")
+  approvedOperationalExpenses OperationalExpense[] @relation("AdminOperationalExpensesApproved")
+  createdBankAccounts         BankAccount[]        @relation("AdminBankAccountsCreated")
+  createdCashAccounts         CashAccount[]        @relation("AdminCashAccountsCreated")
+  createdMobileAccounts       MobileAccount[]      @relation("AdminMobileAccountsCreated")
+  createdOtherAccounts        OtherAccount[]       @relation("AdminOtherAccountsCreated")
+  createdTransactions         Transaction[]        @relation("AdminTransactionsCreated")
+  attendanceRecords           Attendance[]         @relation("AdminAttendanceRecords")
+  createdClientLists          ClientList[]         @relation("AdminClientListsCreated")
+  Invoice                     Invoice[]
+  StickyNote                  StickyNote[]
+  StickyNoteShare             StickyNoteShare[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model User {
+  id                          Int                  @id @default(autoincrement())
+  cognitoId                   String               @unique
+  name                        String
+  email                       String
+  phoneNumber                 String?
+  role                        UserRole             @default(USER)
+  chatRooms                   ChatRoom[]           @relation("UserChatRooms")
+  contacts                    Contact[]            @relation("UserContacts")
+  emailSends                  EmailSend[]          @relation("UserEmailSends")
+  emailLists                  EmailList[]          @relation("UserEmailLists")
+  quotations                  Quotation[]          @relation("UserQuotations")
+  clientExpenses              ClientExpense[]      @relation("UserClientExpenses")
+  operationalExpenses         OperationalExpense[] @relation("UserOperationalExpenses")
+  proofFiles                  ProofFile[]          @relation("UserProofFiles")
+  auditLogs                   AuditLog[]           @relation("UserAuditLogs")
+  clientExpenseApprovals      ClientExpense[]      @relation("UserClientExpenseApprovals")
+  operationalExpenseApprovals OperationalExpense[] @relation("UserOperationalExpenseApprovals")
+  createdQuotations           Quotation[]          @relation("UserQuotationsCreated")
+  approvedQuotations          Quotation[]          @relation("UserQuotationsApproved")
+  approvedClientExpenses      ClientExpense[]      @relation("UserClientExpensesApproved")
+  approvedOperationalExpenses OperationalExpense[] @relation("UserOperationalExpensesApproved")
+  attendanceRecords           Attendance[]         @relation("UserAttendanceRecords")
+
+  @@index([email])
+  @@index([role])
+}
+
+model Accounts {
+  id                          Int                  @id @default(autoincrement())
+  cognitoId                   String               @unique
+  name                        String
+  email                       String
+  phoneNumber                 String?
+  role                        UserRole             @default(ACCOUNTS)
+  chatRooms                   ChatRoom[]           @relation("AccountsChatRooms")
+  emailLists                  EmailList[]          @relation("AccountsEmailLists")
+  quotations                  Quotation[]          @relation("AccountsQuotations")
+  clientExpenses              ClientExpense[]      @relation("AccountsClientExpenses")
+  operationalExpenses         OperationalExpense[] @relation("AccountsOperationalExpenses")
+  proofFiles                  ProofFile[]          @relation("AccountsProofFiles")
+  auditLogs                   AuditLog[]           @relation("AccountsAuditLogs")
+  clientExpenseApprovals      ClientExpense[]      @relation("AccountsClientExpenseApprovals")
+  operationalExpenseApprovals OperationalExpense[] @relation("AccountsOperationalExpenseApprovals")
+  createdQuotations           Quotation[]          @relation("AccountsQuotationsCreated")
+  approvedQuotations          Quotation[]          @relation("AccountsQuotationsApproved")
+  createdClientExpenses       ClientExpense[]      @relation("AccountsClientExpensesCreated")
+  approvedClientExpenses      ClientExpense[]      @relation("AccountsClientExpensesApproved")
+  createdOperationalExpenses  OperationalExpense[] @relation("AccountsOperationalExpensesCreated")
+  approvedOperationalExpenses OperationalExpense[] @relation("AccountsOperationalExpensesApproved")
+  createdBankAccounts         BankAccount[]        @relation("AccountsBankAccountsCreated")
+  createdCashAccounts         CashAccount[]        @relation("AccountsCashAccountsCreated")
+  createdMobileAccounts       MobileAccount[]      @relation("AccountsMobileAccountsCreated")
+  createdOtherAccounts        OtherAccount[]       @relation("AccountsOtherAccountsCreated")
+  createdTransactions         Transaction[]        @relation("AccountsTransactionsCreated")
+  attendanceRecords           Attendance[]         @relation("AccountsAttendanceRecords")
+  createdClientLists          ClientList[]         @relation("AccountsClientListsCreated")
+  Invoice                     Invoice[]
+  StickyNote                  StickyNote[]
+  StickyNoteShare             StickyNoteShare[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Staff {
+  id                          Int                  @id @default(autoincrement())
+  cognitoId                   String               @unique
+  name                        String
+  email                       String
+  phoneNumber                 String?
+  role                        UserRole             @default(STAFF)
+  chatRooms                   ChatRoom[]           @relation("StaffChatRooms")
+  emailLists                  EmailList[]          @relation("StaffEmailLists")
+  quotations                  Quotation[]          @relation("StaffQuotations")
+  clientExpenses              ClientExpense[]      @relation("StaffClientExpenses")
+  operationalExpenses         OperationalExpense[] @relation("StaffOperationalExpenses")
+  proofFiles                  ProofFile[]          @relation("StaffProofFiles")
+  auditLogs                   AuditLog[]           @relation("StaffAuditLogs")
+  clientExpenseApprovals      ClientExpense[]      @relation("StaffClientExpenseApprovals")
+  operationalExpenseApprovals OperationalExpense[] @relation("StaffOperationalExpenseApprovals")
+  createdQuotations           Quotation[]          @relation("StaffQuotationsCreated")
+  approvedQuotations          Quotation[]          @relation("StaffQuotationsApproved")
+  createdClientExpenses       ClientExpense[]      @relation("StaffClientExpensesCreated")
+  approvedClientExpenses      ClientExpense[]      @relation("StaffClientExpensesApproved")
+  createdOperationalExpenses  OperationalExpense[] @relation("StaffOperationalExpensesCreated")
+  approvedOperationalExpenses OperationalExpense[] @relation("StaffOperationalExpensesApproved")
+  attendanceRecords           Attendance[]         @relation("StaffAttendanceRecords")
+  createdClientLists          ClientList[]         @relation("StaffClientListsCreated")
+  Invoice                     Invoice[]
+  StickyNote                  StickyNote[]
+  StickyNoteShare             StickyNoteShare[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model GuestUser {
+  id          Int         @id @default(autoincrement())
+  name        String
+  email       String      @unique
+  phoneNumber String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  chatRooms   ChatRoom[]  @relation("GuestUserChatRooms")
+  emailSends  EmailSend[] @relation("GuestUserEmailSends")
+  emailLists  EmailList[] @relation("GuestUserEmailLists")
+}
+
+model ChatRoom {
+  id                Int           @id @default(autoincrement())
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  guestUserId       Int?
+  userCognitoId     String?
+  adminCognitoId    String?
+  accountsCognitoId String?
+  staffCognitoId    String?
+  guestUser         GuestUser?    @relation(fields: [guestUserId], references: [id], name: "GuestUserChatRooms")
+  user              User?         @relation(fields: [userCognitoId], references: [cognitoId], name: "UserChatRooms")
+  admin             Admin?        @relation(fields: [adminCognitoId], references: [cognitoId], name: "AdminChatRooms")
+  accounts          Accounts?     @relation(fields: [accountsCognitoId], references: [cognitoId], name: "AccountsChatRooms")
+  staff             Staff?        @relation(fields: [staffCognitoId], references: [cognitoId], name: "StaffChatRooms")
+  messages          ChatMessage[]
+}
+
+model ChatMessage {
+  id         Int        @id @default(autoincrement())
+  roomId     Int
+  senderType SenderType
+  senderId   String
+  content    String
+  createdAt  DateTime   @default(now())
+  read       Boolean    @default(false)
+  room       ChatRoom   @relation(fields: [roomId], references: [id])
+}
+
+model Contact {
+  id             Int       @id @default(autoincrement())
+  name           String
+  email          String
+  message        String?
+  subject        String?
+  interests      String?
+  privacyConsent Boolean
+  userCognitoId  String?
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+  user           User?     @relation(fields: [userCognitoId], references: [cognitoId], onDelete: SetNull, name: "UserContacts")
+
+  @@index([userCognitoId])
+}
+
+model Author {
+  id             Int      @id @default(autoincrement())
+  name           String
+  email          String   @unique
+  bio            String?
+  profilePicture String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  blogs          Blog[]
+
+  @@index([email])
+}
+
+model Blog {
+  id             Int      @id @default(autoincrement())
+  title          String
+  slug           String   @unique
+  content        String
+  coverImage     String?
+  videoUrl       String?
+  published      Boolean  @default(false)
+  tags           String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  adminCognitoId String
+  authorId       Int?
+  admin          Admin    @relation(fields: [adminCognitoId], references: [cognitoId])
+  author         Author?  @relation(fields: [authorId], references: [id])
+
+  @@index([authorId])
+}
+
+model EmailCampaign {
+  id              Int            @id @default(autoincrement())
+  brevoCampaignId Int            @unique
+  name            String
+  subject         String
+  htmlContent     String
+  status          CampaignStatus @default(DRAFT)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  adminCognitoId  String
+  emailListId     Int
+  scheduledAt     DateTime?
+  emailSends      EmailSend[]
+  admin           Admin          @relation(fields: [adminCognitoId], references: [cognitoId], name: "AdminEmailCampaigns")
+  emailList       EmailList      @relation(fields: [emailListId], references: [id])
+  attachments     Attachment[]
+}
+
+model Attachment {
+  id              Int           @id @default(autoincrement())
+  emailCampaignId Int
+  emailCampaign   EmailCampaign @relation(fields: [emailCampaignId], references: [id], onDelete: Cascade)
+  fileName        String
+  filePath        String
+  mimeType        String
+  size            Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model EmailList {
+  id             Int             @id @default(autoincrement())
+  brevoListId    Int             @unique
+  name           String
+  createdAt      DateTime        @default(now())
+  deletedAt      DateTime?
+  adminCognitoId String
+  users          User[]          @relation("UserEmailLists")
+  guestUsers     GuestUser[]     @relation("GuestUserEmailLists")
+  accounts       Accounts[]      @relation("AccountsEmailLists")
+  staff          Staff[]         @relation("StaffEmailLists")
+  emailCampaigns EmailCampaign[]
+  admin          Admin           @relation(fields: [adminCognitoId], references: [cognitoId], name: "AdminEmailLists")
+}
+
+model EmailSend {
+  id              Int             @id @default(autoincrement())
+  emailCampaignId Int
+  userId          Int?
+  guestUserId     Int?
+  sentAt          DateTime?
+  openedAt        DateTime?
+  clickedAt       DateTime?
+  status          EmailSendStatus @default(PENDING)
+  reason          String?
+  user            User?           @relation("UserEmailSends", fields: [userId], references: [id])
+  guestUser       GuestUser?      @relation("GuestUserEmailSends", fields: [guestUserId], references: [id])
+  campaign        EmailCampaign   @relation(fields: [emailCampaignId], references: [id])
+
+  @@index([emailCampaignId])
+  @@index([userId])
+  @@index([guestUserId])
+}
+
+model Quotation {
+  id                          Int             @id @default(autoincrement())
+  quotationNumber             String          @unique
+  supplierName                String
+  items                       String
+  quotedAmount                Decimal         @db.Decimal(14, 2)
+  validUntil                  DateTime
+  status                      QuotationStatus @default(PENDING)
+  createdByUserCognitoId      String?
+  createdByAdminCognitoId     String?
+  createdByAccountsCognitoId  String?
+  createdByStaffCognitoId     String?
+  approvedByUserCognitoId     String?
+  approvedByAdminCognitoId    String?
+  approvedByAccountsCognitoId String?
+  approvedByStaffCognitoId    String?
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
+  createdByUser               User?           @relation(fields: [createdByUserCognitoId], references: [cognitoId], name: "UserQuotationsCreated", onDelete: SetNull)
+  createdByAdmin              Admin?          @relation(fields: [createdByAdminCognitoId], references: [cognitoId], name: "AdminQuotationsCreated", onDelete: SetNull)
+  createdByAccounts           Accounts?       @relation(fields: [createdByAccountsCognitoId], references: [cognitoId], name: "AccountsQuotationsCreated", onDelete: SetNull)
+  createdByStaff              Staff?          @relation(fields: [createdByStaffCognitoId], references: [cognitoId], name: "StaffQuotationsCreated", onDelete: SetNull)
+  approvedByUser              User?           @relation(fields: [approvedByUserCognitoId], references: [cognitoId], name: "UserQuotationsApproved", onDelete: SetNull)
+  approvedByAdmin             Admin?          @relation(fields: [approvedByAdminCognitoId], references: [cognitoId], name: "AdminQuotationsApproved", onDelete: SetNull)
+  approvedByAccounts          Accounts?       @relation(fields: [approvedByAccountsCognitoId], references: [cognitoId], name: "AccountsQuotationsApproved", onDelete: SetNull)
+  approvedByStaff             Staff?          @relation(fields: [approvedByStaffCognitoId], references: [cognitoId], name: "StaffQuotationsApproved", onDelete: SetNull)
+  proofFiles                  ProofFile[]     @relation("QuotationProofFiles")
+  adminQuotations             Admin[]         @relation("AdminQuotations")
+  userQuotations              User[]          @relation("UserQuotations")
+  accountsQuotations          Accounts[]      @relation("AccountsQuotations")
+  staffQuotations             Staff[]         @relation("StaffQuotations")
+
+  @@index([quotationNumber])
+  @@index([supplierName])
+  @@index([status])
+  @@index([createdByUserCognitoId])
+  @@index([createdByAdminCognitoId])
+  @@index([createdByAccountsCognitoId])
+  @@index([createdByStaffCognitoId])
+  @@index([approvedByUserCognitoId])
+  @@index([approvedByAdminCognitoId])
+  @@index([approvedByAccountsCognitoId])
+  @@index([approvedByStaffCognitoId])
+}
+
+model Supplier {
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  contactPerson       String?
+  email               String?
+  phone               String?
+  address             String?
+  kraPin              String?
+  clientExpenses      ClientExpense[]      @relation("ClientExpenseSupplier")
+  operationalExpenses OperationalExpense[] @relation("OperationalExpenseSupplier")
+}
+
+model ClientExpense {
+  id                          Int     @id @default(autoincrement())
+  referenceNumber             String? @unique
+  createdByAdminCognitoId     String?
+  createdByAccountsCognitoId  String?
+  createdByStaffCognitoId     String?
+  approvedByUserCognitoId     String?
+  approvedByAdminCognitoId    String?
+  approvedByAccountsCognitoId String?
+  approvedByStaffCognitoId    String?
+
+  bankAccountId          Int?
+  cashAccountId          Int?
+  mobileAccountId        Int?
+  otherAccountId         Int?
+  agentName              String
+  kraPin                 String?
+  candidateName          String
+  clientName             String
+  date                   DateTime
+  expenseDetails         String?
+  expenseCheck           ExpenseCheck
+  expenseDescription     String?
+  institutionName        String
+  paymentMode            PaymentMode
+  paymentModeDescription String
+  amount                 Decimal       @db.Decimal(14, 2)
+  currency               String
+  totalAmountPaid        Decimal       @db.Decimal(14, 2)
+  supplierId             Int?
+  paymentStatus          PaymentStatus @default(PENDING)
+  expenseStatus          ExpenseStatus @default(PENDING)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  clientListId           Int?
+
+  createdByAdmin     Admin?    @relation(fields: [createdByAdminCognitoId], references: [cognitoId], name: "AdminClientExpensesCreated", onDelete: SetNull)
+  createdByAccounts  Accounts? @relation(fields: [createdByAccountsCognitoId], references: [cognitoId], name: "AccountsClientExpensesCreated", onDelete: SetNull)
+  createdByStaff     Staff?    @relation(fields: [createdByStaffCognitoId], references: [cognitoId], name: "StaffClientExpensesCreated", onDelete: SetNull)
+  approvedByUser     User?     @relation(fields: [approvedByUserCognitoId], references: [cognitoId], name: "UserClientExpensesApproved", onDelete: SetNull)
+  approvedByAdmin    Admin?    @relation(fields: [approvedByAdminCognitoId], references: [cognitoId], name: "AdminClientExpensesApproved", onDelete: SetNull)
+  approvedByAccounts Accounts? @relation(fields: [approvedByAccountsCognitoId], references: [cognitoId], name: "AccountsClientExpensesApproved", onDelete: SetNull)
+  approvedByStaff    Staff?    @relation(fields: [approvedByStaffCognitoId], references: [cognitoId], name: "StaffClientExpensesApproved", onDelete: SetNull)
+
+  supplier   Supplier?   @relation(fields: [supplierId], references: [id], name: "ClientExpenseSupplier")
+  clientList ClientList? @relation(fields: [clientListId], references: [id], name: "ClientListExpenses")
+  proofFiles ProofFile[] @relation("ClientExpenseProofFiles")
+  Invoice    Invoice[]
+
+  adminClientExpenses    Admin[]    @relation("AdminClientExpenses")
+  userClientExpenses     User[]     @relation("UserClientExpenses")
+  accountsClientExpenses Accounts[] @relation("AccountsClientExpenses")
+  staffClientExpenses    Staff[]    @relation("StaffClientExpenses")
+  adminApprovals         Admin[]    @relation("AdminClientExpenseApprovals")
+  userApprovals          User[]     @relation("UserClientExpenseApprovals")
+  accountsApprovals      Accounts[] @relation("AccountsClientExpenseApprovals")
+  staffApprovals         Staff[]    @relation("StaffClientExpenseApprovals")
+
+  bankAccount   BankAccount?   @relation("ClientExpenseBankAccount", fields: [bankAccountId], references: [id], map: "ClientExpense_bankAccountId_fkey")
+  cashAccount   CashAccount?   @relation("ClientExpenseCashAccount", fields: [cashAccountId], references: [id], map: "ClientExpense_cashAccountId_fkey")
+  mobileAccount MobileAccount? @relation("ClientExpenseMobileAccount", fields: [mobileAccountId], references: [id], map: "ClientExpense_mobileAccountId_fkey")
+  otherAccount  OtherAccount?  @relation("ClientExpenseOtherAccount", fields: [otherAccountId], references: [id], map: "ClientExpense_otherAccountId_fkey")
+
+  @@index([date])
+  @@index([clientName])
+  @@index([candidateName])
+  @@index([kraPin])
+  @@index([paymentStatus])
+  @@index([expenseStatus])
+  @@index([createdByAdminCognitoId])
+  @@index([createdByAccountsCognitoId])
+  @@index([createdByStaffCognitoId])
+  @@index([approvedByUserCognitoId])
+  @@index([approvedByAdminCognitoId])
+  @@index([approvedByAccountsCognitoId])
+  @@index([approvedByStaffCognitoId])
+  @@index([supplierId])
+  @@index([clientListId])
+  @@index([bankAccountId])
+  @@index([cashAccountId])
+  @@index([mobileAccountId])
+  @@index([otherAccountId])
+}
+
+model ClientList {
+  id Int @id @default(autoincrement())
+
+  // Predefined client (from enum) – optional
+  clientName ClientName?
+
+  // Custom client name when not using predefined
+  customClientName String? @db.VarChar(100)
+
+  contactEmail String? @db.VarChar(255)
+  contactPhone String? @db.VarChar(20)
+  address      String? @db.VarChar(200)
+  kraPin       String? @db.VarChar(50)
+
+  // NEW FIELD – stores direct S3 public URL
+  imageUrl String? @db.Text
+
+  isActive Boolean @default(true)
+
+  // Creator tracking (only one will be set)
+  createdByAdminCognitoId    String? @db.VarChar(255)
+  createdByAccountsCognitoId String? @db.VarChar(255)
+  createdByStaffCognitoId    String? @db.VarChar(255)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  createdByAdmin    Admin?    @relation("AdminClientListsCreated", fields: [createdByAdminCognitoId], references: [cognitoId], onDelete: SetNull)
+  createdByAccounts Accounts? @relation("AccountsClientListsCreated", fields: [createdByAccountsCognitoId], references: [cognitoId], onDelete: SetNull)
+  createdByStaff    Staff?    @relation("StaffClientListsCreated", fields: [createdByStaffCognitoId], references: [cognitoId], onDelete: SetNull)
+
+  clientExpenses ClientExpense[] @relation("ClientListExpenses")
+  invoices       Invoice[]
+
+  @@index([clientName])
+  @@index([createdByAdminCognitoId])
+  @@index([createdByAccountsCognitoId])
+  @@index([createdByStaffCognitoId])
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model Invoice {
+  id                 Int      @id @default(autoincrement())
+  invoiceNumber      String   @unique
+  issueDate          DateTime @default(now())
+  dueDate            DateTime
+  clientExpenseId    Int
+  clientListId       Int?
+  createdByCognitoId String?
+
+  senderName      String
+  senderAddress   String
+  receiverName    String
+  receiverAddress String
+
+  referenceNumber String?
+  description     String?
+  currency        String   @default("KES")
+  subTotal        Decimal  @db.Decimal(14, 2)
+  taxAmount       Decimal  @db.Decimal(14, 2)
+  totalAmount     Decimal  @db.Decimal(14, 2)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  clientExpense ClientExpense @relation(fields: [clientExpenseId], references: [id], onDelete: Cascade)
+  clientList    ClientList?   @relation(fields: [clientListId], references: [id])
+
+  createdByAdmin    Admin?    @relation(fields: [createdByCognitoId], references: [cognitoId], onDelete: SetNull, map: "Invoice_Admin_createdByCognitoId_fkey")
+  createdByAccounts Accounts? @relation(fields: [createdByCognitoId], references: [cognitoId], onDelete: SetNull, map: "Invoice_Accounts_createdByCognitoId_fkey")
+  createdByStaff    Staff?    @relation(fields: [createdByCognitoId], references: [cognitoId], onDelete: SetNull, map: "Invoice_Staff_createdByCognitoId_fkey")
+
+  items InvoiceItem[]
+
+  @@index([invoiceNumber])
+  @@index([clientExpenseId])
+}
+
+model InvoiceItem {
+  id        Int      @id @default(autoincrement())
+  invoiceId Int
+  itemName  String
+  itemType  ItemType
+  quantity  Int      @default(1)
+  unitPrice Decimal  @db.Decimal(14, 2)
+  total     Decimal  @db.Decimal(14, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model OperationalExpense {
+  id                          Int            @id @default(autoincrement())
+  referenceNumber             String?        @unique
+  transactions                Transaction[]
+  createdByAdminCognitoId     String?
+  createdByAccountsCognitoId  String?
+  createdByStaffCognitoId     String?
+  approvedByUserCognitoId     String?
+  approvedByAdminCognitoId    String?
+  approvedByAccountsCognitoId String?
+  approvedByStaffCognitoId    String?
+  agentName                   String
+  kraPin                      String?
+  date                        DateTime
+  expenseDetails              String
+  expenseName                 String
+  institutionName             String
+  frequency                   Frequency
+  paymentMode                 PaymentMode
+  paymentModeDescription      String
+  amount                      Decimal        @db.Decimal(14, 2)
+  currency                    String
+  totalAmountPaid             Decimal        @db.Decimal(14, 2)
+  supplierId                  Int?
+  bankAccountId               Int?
+  cashAccountId               Int?
+  mobileAccountId             Int?
+  otherAccountId              Int?
+  paymentStatus               PaymentStatus  @default(PENDING)
+  expenseStatus               ExpenseStatus  @default(DRAFT)
+  lpoStatus                   String?        @default("DRAFT")
+  itemType                    ItemType?
+  accountType                 AccountType?
+  createdAt                   DateTime       @default(now())
+  updatedAt                   DateTime       @updatedAt
+  createdByAdmin              Admin?         @relation(fields: [createdByAdminCognitoId], references: [cognitoId], name: "AdminOperationalExpensesCreated", onDelete: SetNull)
+  createdByAccounts           Accounts?      @relation(fields: [createdByAccountsCognitoId], references: [cognitoId], name: "AccountsOperationalExpensesCreated", onDelete: SetNull)
+  createdByStaff              Staff?         @relation(fields: [createdByStaffCognitoId], references: [cognitoId], name: "StaffOperationalExpensesCreated", onDelete: SetNull)
+  approvedByUser              User?          @relation(fields: [approvedByUserCognitoId], references: [cognitoId], name: "UserOperationalExpensesApproved", onDelete: SetNull)
+  approvedByAdmin             Admin?         @relation(fields: [approvedByAdminCognitoId], references: [cognitoId], name: "AdminOperationalExpensesApproved", onDelete: SetNull)
+  approvedByAccounts          Accounts?      @relation(fields: [approvedByAccountsCognitoId], references: [cognitoId], name: "AccountsOperationalExpensesApproved", onDelete: SetNull)
+  approvedByStaff             Staff?         @relation(fields: [approvedByStaffCognitoId], references: [cognitoId], name: "StaffOperationalExpensesApproved", onDelete: SetNull)
+  supplier                    Supplier?      @relation(fields: [supplierId], references: [id], name: "OperationalExpenseSupplier")
+  bankAccount                 BankAccount?   @relation(fields: [bankAccountId], references: [id], name: "BankAccountExpenses")
+  cashAccount                 CashAccount?   @relation(fields: [cashAccountId], references: [id], name: "CashAccountExpenses")
+  mobileAccount               MobileAccount? @relation(fields: [mobileAccountId], references: [id], name: "MobileAccountExpenses")
+  otherAccount                OtherAccount?  @relation(fields: [otherAccountId], references: [id], name: "OtherAccountExpenses")
+  proofFiles                  ProofFile[]    @relation("OperationalExpenseProofFiles")
+  adminOperationalExpenses    Admin[]        @relation("AdminOperationalExpenses")
+  userOperationalExpenses     User[]         @relation("UserOperationalExpenses")
+  accountsOperationalExpenses Accounts[]     @relation("AccountsOperationalExpenses")
+  staffOperationalExpenses    Staff[]        @relation("StaffOperationalExpenses")
+  adminApprovals              Admin[]        @relation("AdminOperationalExpenseApprovals")
+  userApprovals               User[]         @relation("UserOperationalExpenseApprovals")
+  accountsApprovals           Accounts[]     @relation("AccountsOperationalExpenseApprovals")
+  staffApprovals              Staff[]        @relation("StaffOperationalExpenseApprovals")
+
+  @@index([date])
+  @@index([expenseName])
+  @@index([expenseStatus])
+  @@index([paymentStatus])
+  @@index([kraPin])
+  @@index([createdByAdminCognitoId])
+  @@index([createdByAccountsCognitoId])
+  @@index([createdByStaffCognitoId])
+  @@index([approvedByUserCognitoId])
+  @@index([approvedByAdminCognitoId])
+  @@index([approvedByAccountsCognitoId])
+  @@index([approvedByStaffCognitoId])
+  @@index([supplierId])
+  @@index([bankAccountId])
+  @@index([cashAccountId])
+  @@index([mobileAccountId])
+  @@index([otherAccountId])
+}
+
+model BankAccount {
+  id                         Int                  @id @default(autoincrement())
+  accountName                String
+  accountNumber              String
+  currency                   String
+  balance                    Decimal              @db.Decimal(14, 2)
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
+  createdByAdminCognitoId    String?
+  createdByAccountsCognitoId String?
+  createdByAdmin             Admin?               @relation(fields: [createdByAdminCognitoId], references: [cognitoId], name: "AdminBankAccountsCreated", onDelete: SetNull)
+  createdByAccounts          Accounts?            @relation(fields: [createdByAccountsCognitoId], references: [cognitoId], name: "AccountsBankAccountsCreated", onDelete: SetNull)
+  operationalExpenses        OperationalExpense[] @relation("BankAccountExpenses")
+  transactions               Transaction[]        @relation("BankAccountTransactions")
+  clientExpenses             ClientExpense[]      @relation("ClientExpenseBankAccount")
+
+  @@index([createdByAdminCognitoId])
+  @@index([createdByAccountsCognitoId])
+}
+
+model CashAccount {
+  id                          Int      @id @default(autoincrement())
+  accountName                 String
+  accountNumber               String?
+  currency                    String
+  description                 String?
+  balance                     Decimal  @db.Decimal(14, 2)
+
+  status                      AccountStatus  @default(ACTIVE)
+  isActive                    Boolean        @default(true)
+  closedAt                    DateTime?
+  closedByAdminCognitoId      String?
+  closedByAccountsCognitoId   String?
+  closureReason               String?
+  closureNotes                String?
+
+  createdAt                   DateTime       @default(now())
+  updatedAt                   DateTime       @updatedAt
+
+  createdByAdminCognitoId     String?
+  createdByAccountsCognitoId  String?
+
+  createdByAdmin              Admin?         @relation("AdminCashAccountsCreated", fields: [createdByAdminCognitoId], references: [cognitoId], onDelete: SetNull)
+  createdByAccounts           Accounts?      @relation("AccountsCashAccountsCreated", fields: [createdByAccountsCognitoId], references: [cognitoId], onDelete: SetNull)
+
+  operationalExpenses         OperationalExpense[] @relation("CashAccountExpenses")
+  transactions                Transaction[]        @relation("CashAccountTransactions")
+  clientExpenses              ClientExpense[]      @relation("ClientExpenseCashAccount")
+  dailyBalances               CashAccountDailyBalance[] @relation("CashAccountDailyBalances")
+
+  @@index([status])
+  @@index([isActive])
+  @@index([closedAt])
+  @@map("cash_accounts")
+}
+
+model CashAccountDailyBalance {
+  id              Int       @id @default(autoincrement())
+
+  cashAccountId   Int
+  date            DateTime
+
+  openingBalance  Decimal   @db.Decimal(14, 2)
+  closingBalance  Decimal   @db.Decimal(14, 2)
+  netMovement     Decimal   @db.Decimal(14, 2)
+
+  transactionCount Int      @default(0)
+  isFinalized     Boolean  @default(false)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  cashAccount     CashAccount @relation("CashAccountDailyBalances", fields: [cashAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([cashAccountId, date])
+  @@index([cashAccountId, date(sort: Asc)])
+  @@index([date])
+  @@map("cash_account_daily_balances")
+}
+
+model MobileAccount {
+  id                         Int                  @id @default(autoincrement())
+  accountName                String
+  accountNumber              String
+  currency                   String
+  balance                    Decimal              @db.Decimal(14, 2)
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
+  createdByAdminCognitoId    String?
+  createdByAccountsCognitoId String?
+  createdByAdmin             Admin?               @relation(fields: [createdByAdminCognitoId], references: [cognitoId], name: "AdminMobileAccountsCreated", onDelete: SetNull)
+  createdByAccounts          Accounts?            @relation(fields: [createdByAccountsCognitoId], references: [cognitoId], name: "AccountsMobileAccountsCreated", onDelete: SetNull)
+  operationalExpenses        OperationalExpense[] @relation("MobileAccountExpenses")
+  transactions               Transaction[]        @relation("MobileAccountTransactions")
+  clientExpenses             ClientExpense[]      @relation("ClientExpenseMobileAccount")
+
+  @@index([createdByAdminCognitoId])
+  @@index([createdByAccountsCognitoId])
+}
+
+model OtherAccount {
+  id                         Int                  @id @default(autoincrement())
+  accountName                String
+  accountNumber              String?
+  currency                   String
+  balance                    Decimal              @db.Decimal(14, 2)
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
+  createdByAdminCognitoId    String?
+  createdByAccountsCognitoId String?
+  createdByAdmin             Admin?               @relation(fields: [createdByAdminCognitoId], references: [cognitoId], name: "AdminOtherAccountsCreated", onDelete: SetNull)
+  createdByAccounts          Accounts?            @relation(fields: [createdByAccountsCognitoId], references: [cognitoId], name: "AccountsOtherAccountsCreated", onDelete: SetNull)
+  operationalExpenses        OperationalExpense[] @relation("OtherAccountExpenses")
+  transactions               Transaction[]        @relation("OtherAccountTransactions")
+  clientExpenses             ClientExpense[]      @relation("ClientExpenseOtherAccount")
+
+  @@index([createdByAdminCognitoId])
+  @@index([createdByAccountsCognitoId])
+}
+
+model Transaction {
+  id                         Int                 @id @default(autoincrement())
+  amount                     Decimal             @db.Decimal(14, 2)
+  currency                   String
+  payee                      String
+  paymentMode                PaymentMode
+  status                     PaymentStatus       @default(PENDING)
+  description                String?
+  date                       DateTime
+  expenseId                  Int?                @map("expense_id")
+  proofFileId                Int?                @unique @map("proof_file_id")
+  bankAccountId              Int?                @map("bank_account_id")
+  cashAccountId              Int?                @map("cash_account_id")
+  mobileAccountId            Int?                @map("mobile_account_id")
+  otherAccountId             Int?                @map("other_account_id")
+  checkoutRequestId          String?             @unique
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  expense                    OperationalExpense? @relation(fields: [expenseId], references: [id])
+  proofFile                  ProofFile?          @relation(fields: [proofFileId], references: [id], name: "TransactionProofFile")
+  bankAccount                BankAccount?        @relation(fields: [bankAccountId], references: [id], name: "BankAccountTransactions")
+  cashAccount                CashAccount?        @relation(fields: [cashAccountId], references: [id], name: "CashAccountTransactions")
+  mobileAccount              MobileAccount?      @relation(fields: [mobileAccountId], references: [id], name: "MobileAccountTransactions")
+  otherAccount               OtherAccount?       @relation(fields: [otherAccountId], references: [id], name: "OtherAccountTransactions")
+  createdByAdminCognitoId    String?
+  createdByAccountsCognitoId String?
+  createdByAdmin             Admin?              @relation(fields: [createdByAdminCognitoId], references: [cognitoId], name: "AdminTransactionsCreated", onDelete: SetNull)
+  createdByAccounts          Accounts?           @relation(fields: [createdByAccountsCognitoId], references: [cognitoId], name: "AccountsTransactionsCreated", onDelete: SetNull)
+
+  @@index([expenseId])
+  @@index([proofFileId])
+  @@index([bankAccountId])
+  @@index([cashAccountId])
+  @@index([mobileAccountId])
+  @@index([otherAccountId])
+  @@index([createdByAdminCognitoId])
+  @@index([createdByAccountsCognitoId])
+}
+
+model ProofFile {
+  id                          Int          @id @default(autoincrement())
+  expenseType                 ExpenseType?
+  clientExpenseId             Int?
+  operationalExpenseId        Int?
+  quotationId                 Int?
+  s3Key                       String       @unique
+  url                         String
+  uploadedByUserCognitoId     String?
+  uploadedByAdminCognitoId    String?
+  uploadedByAccountsCognitoId String?
+  uploadedByStaffCognitoId    String?
+  createdAt                   DateTime     @default(now())
+
+  clientExpense      ClientExpense?      @relation(fields: [clientExpenseId], references: [id], name: "ClientExpenseProofFiles")
+  operationalExpense OperationalExpense? @relation(fields: [operationalExpenseId], references: [id], name: "OperationalExpenseProofFiles")
+  quotation          Quotation?          @relation(fields: [quotationId], references: [id], name: "QuotationProofFiles")
+
+  uploadedByUser     User?     @relation(fields: [uploadedByUserCognitoId], references: [cognitoId], name: "UserProofFiles", onDelete: SetNull, map: "proof_file_uploaded_user_fkey")
+  uploadedByAdmin    Admin?    @relation(fields: [uploadedByAdminCognitoId], references: [cognitoId], name: "AdminProofFiles", onDelete: SetNull, map: "proof_file_uploaded_admin_fkey")
+  uploadedByAccounts Accounts? @relation(fields: [uploadedByAccountsCognitoId], references: [cognitoId], name: "AccountsProofFiles", onDelete: SetNull, map: "proof_file_uploaded_accounts_fkey")
+  uploadedByStaff    Staff?    @relation(fields: [uploadedByStaffCognitoId], references: [cognitoId], name: "StaffProofFiles", onDelete: SetNull, map: "proof_file_uploaded_staff_fkey")
+
+  transaction Transaction? @relation("TransactionProofFile")
+
+  @@index([clientExpenseId])
+  @@index([operationalExpenseId])
+  @@index([quotationId])
+  @@index([uploadedByUserCognitoId])
+  @@index([uploadedByAdminCognitoId])
+  @@index([uploadedByAccountsCognitoId])
+  @@index([uploadedByStaffCognitoId])
+}
+
+model AuditLog {
+  id                     Int          @id @default(autoincrement())
+  actorUserCognitoId     String?
+  actorAdminCognitoId    String?
+  actorAccountsCognitoId String?
+  actorStaffCognitoId    String?
+  action                 String
+  entity                 String
+  entityId               String
+  appSettingId           Int?
+  meta                   Json?
+  createdAt              DateTime     @default(now())
+  actorUser              User?        @relation(fields: [actorUserCognitoId], references: [cognitoId], name: "UserAuditLogs", onDelete: SetNull)
+  actorAdmin             Admin?       @relation(fields: [actorAdminCognitoId], references: [cognitoId], name: "AdminAuditLogs", onDelete: SetNull)
+  actorAccounts          Accounts?    @relation(fields: [actorAccountsCognitoId], references: [cognitoId], name: "AccountsAuditLogs", onDelete: SetNull)
+  actorStaff             Staff?       @relation(fields: [actorStaffCognitoId], references: [cognitoId], name: "StaffAuditLogs", onDelete: SetNull)
+  appSetting             AppSettings? @relation(fields: [appSettingId], references: [id], name: "AppSettingsAuditLogs", onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([appSettingId])
+  @@index([actorUserCognitoId])
+  @@index([actorAdminCognitoId])
+  @@index([actorAccountsCognitoId])
+  @@index([actorStaffCognitoId])
+}
+
+model EmployeeSchedule {
+  id                Int      @id @default(autoincrement())
+  cognitoId         String
+  role              UserRole
+  dayOfWeek         Int
+  expectedStartTime DateTime
+  expectedEndTime   DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([cognitoId, dayOfWeek])
+}
+
+model Attendance {
+  id                Int              @id @default(autoincrement())
+  userCognitoId     String?
+  adminCognitoId    String?
+  accountsCognitoId String?
+  staffCognitoId    String?
+  checkInTime       DateTime?
+  checkOutTime      DateTime?
+  totalHours        Float?           @map("total_hours")
+  status            AttendanceStatus @default(CHECKED_IN)
+  checkInLat        Decimal?         @db.Decimal(9, 6)
+  checkInLng        Decimal?         @db.Decimal(9, 6)
+  checkOutLat       Decimal?         @db.Decimal(9, 6)
+  checkOutLng       Decimal?         @db.Decimal(9, 6)
+  breakType         BreakType?
+  autoCheckedOut    Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  user              User?            @relation(fields: [userCognitoId], references: [cognitoId], name: "UserAttendanceRecords", onDelete: SetNull)
+  admin             Admin?           @relation(fields: [adminCognitoId], references: [cognitoId], name: "AdminAttendanceRecords", onDelete: SetNull)
+  accounts          Accounts?        @relation(fields: [accountsCognitoId], references: [cognitoId], name: "AccountsAttendanceRecords", onDelete: SetNull)
+  staff             Staff?           @relation(fields: [staffCognitoId], references: [cognitoId], name: "StaffAttendanceRecords", onDelete: SetNull)
+
+  @@index([userCognitoId, checkInTime])
+  @@index([adminCognitoId, checkInTime])
+  @@index([accountsCognitoId, checkInTime])
+  @@index([staffCognitoId, checkInTime])
+}
+
+model AppSettings {
+  id         Int        @id @default(autoincrement())
+  settingKey String     @unique
+  value      Boolean
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  auditLogs  AuditLog[] @relation("AppSettingsAuditLogs")
+
+  @@index([settingKey])
+}
+
+model StickyNote {
+  id         Int       @id @default(autoincrement())
+  title      String
+  content    String
+  color      String?
+  width      Int       @default(200)
+  height     Int       @default(200)
+  posX       Int       @default(50)
+  posY       Int       @default(50)
+  isPinned   Boolean   @default(false)
+  isArchived Boolean   @default(false)
+  reminderAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  adminCognitoId    String?
+  staffCognitoId    String?
+  accountsCognitoId String?
+
+  admin    Admin?    @relation(fields: [adminCognitoId], references: [cognitoId])
+  staff    Staff?    @relation(fields: [staffCognitoId], references: [cognitoId])
+  accounts Accounts? @relation(fields: [accountsCognitoId], references: [cognitoId])
+
+  shares StickyNoteShare[] // 👈 NEW
+}
+
+model StickyNoteShare {
+  id           Int                   @id @default(autoincrement())
+  stickyNoteId Int
+  permission   StickySharePermission @default(VIEW)
+  createdAt    DateTime              @default(now())
+
+  // receiver
+  adminCognitoId    String?
+  staffCognitoId    String?
+  accountsCognitoId String?
+
+  stickyNote StickyNote @relation(fields: [stickyNoteId], references: [id], onDelete: Cascade)
+
+  admin    Admin?    @relation(fields: [adminCognitoId], references: [cognitoId])
+  staff    Staff?    @relation(fields: [staffCognitoId], references: [cognitoId])
+  accounts Accounts? @relation(fields: [accountsCognitoId], references: [cognitoId])
+
+  @@unique([stickyNoteId, adminCognitoId])
+  @@unique([stickyNoteId, staffCognitoId])
+  @@unique([stickyNoteId, accountsCognitoId])
+  @@index([stickyNoteId])
+  @@index([adminCognitoId])
+  @@index([staffCognitoId])
+  @@index([accountsCognitoId])
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "amount": 500.0,
+    "currency": "USD",
+    "payee": "Vendor A",
+    "status": "PENDING",
+    "date": "2025-09-08",
+    "checkoutRequestId": "TXN-2025-001",
+    "createdByAdmin": {
+      "connect": {
+        "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a"
+      }
+    },
+    "createdAt": "2025-09-08T10:00:00.000Z",
+    "updatedAt": "2025-09-08T10:00:00.000Z"
+  },
+  {
+    "amount": 1000.0,
+    "currency": "USD",
+    "payee": "Vendor B",
+    "status": "PAID",
+    "date": "2025-09-07",
+    "checkoutRequestId": "TXN-2025-002",
+    "createdByAccounts": {
+      "connect": {
+        "cognitoId": "acc1-1234-5678-9012-345678901234"
+      }
+    },
+    "createdAt": "2025-09-07T10:00:00.000Z",
+    "updatedAt": "2025-09-07T10:00:00.000Z"
+  }
+]

@@ -1,0 +1,29 @@
+[
+  {
+    "actorUserCognitoId": "817b3540-a061-707b-742a-a28391181149",
+    "actorAdminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a",
+    "action": "CREATE_QUOTATION",
+    "entity": "QUOTATION",
+    "entityId": "1",
+    "meta": { "quotationNumber": "QUO-2025-0001", "role": "ACCOUNTS" },
+    "createdAt": "2025-08-13T12:00:00.000Z"
+  },
+  {
+    "actorUserCognitoId": null,
+    "actorAdminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a",
+    "action": "APPROVE_QUOTATION",
+    "entity": "QUOTATION",
+    "entityId": "2",
+    "meta": { "quotationNumber": "QUO-2025-0002" },
+    "createdAt": "2025-08-13T12:00:00.000Z"
+  },
+  {
+    "actorUserCognitoId": null,
+    "actorAdminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a",
+    "action": "ISSUE_LPO",
+    "entity": "LPO",
+    "entityId": "1",
+    "meta": { "lpoNumber": "LPO-2025-0001" },
+    "createdAt": "2025-08-13T12:00:00.000Z"
+  }
+]

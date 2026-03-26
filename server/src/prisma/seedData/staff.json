@@ -1,0 +1,9 @@
+[
+  {
+    "cognitoId": "staff1-1234-5678-9012-345678901234",
+    "name": "Vincent",
+    "email": "staff1@example.com",
+    "phoneNumber": "+254111222444",
+    "role": "STAFF"
+  }
+]

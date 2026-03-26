@@ -1,0 +1,34 @@
+[
+  {
+    "emailCampaignId": 2,
+    "userId": 2,
+    "status": "DELIVERED",
+    "sentAt": "2025-07-27T14:00:00.000Z",
+    "openedAt": "2025-07-27T14:05:00.000Z",
+    "clickedAt": "2025-07-27T14:06:00.000Z"
+  },
+  {
+    "emailCampaignId": 2,
+    "userId": 3,
+    "status": "BOUNCED",
+    "sentAt": "2025-07-27T14:00:00.000Z",
+    "reason": "Invalid email address"
+  },
+  {
+    "emailCampaignId": 2,
+    "guestUserId": 2,
+    "status": "OPENED",
+    "sentAt": "2025-07-27T14:00:00.000Z",
+    "openedAt": "2025-07-27T14:10:00.000Z"
+  },
+  {
+    "emailCampaignId": 1,
+    "userId": 1,
+    "status": "PENDING"
+  },
+  {
+    "emailCampaignId": 1,
+    "guestUserId": 1,
+    "status": "PENDING"
+  }
+]

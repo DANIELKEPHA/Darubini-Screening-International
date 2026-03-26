@@ -1,0 +1,52 @@
+[
+{
+"quotationNumber": "QUO-2025-0001",
+"supplierName": "City Properties",
+"items": "{\"items\": [{\"name\": \"Office Rent\", \"quantity\": 1, \"unitPrice\": 50000}]}",
+"quotedAmount": 50000.00,
+"validUntil": "2025-09-13T00:00:00.000Z",
+"status": "PENDING",
+"createdByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"approvedByAdmin": {
+"connect": { "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }
+},
+"createdAt": "2025-08-13T12:00:00.000Z",
+"updatedAt": "2025-08-13T12:00:00.000Z",
+"proofFiles": {
+"connect": [{ "s3Key": "proofs/quotation/2025/0001.pdf" }]
+},
+"adminQuotations": {
+"connect": [{ "cognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a" }]
+},
+"userQuotations": {
+"connect": []
+}
+},
+{
+"quotationNumber": "QUO-2025-0002",
+"supplierName": "Tech Solutions Inc.",
+"items": "{\"items\": [{\"name\": \"Software License\", \"quantity\": 1, \"unitPrice\": 1000}]}",
+"quotedAmount": 1000.00,
+"validUntil": "2025-09-14T00:00:00.000Z",
+"status": "APPROVED",
+"createdByAccounts": {
+"connect": { "cognitoId": "acc1-1234-5678-9012-345678901234" }
+},
+"approvedByUser": {
+"connect": { "cognitoId": "817b3540-a061-707b-742a-a28391181149" }
+},
+"createdAt": "2025-08-14T09:00:00.000Z",
+"updatedAt": "2025-08-14T10:00:00.000Z",
+"proofFiles": {
+"create": []
+},
+"adminQuotations": {
+"connect": []
+},
+"userQuotations": {
+"connect": [{ "cognitoId": "817b3540-a061-707b-742a-a28391181149" }]
+}
+}
+]

@@ -1,0 +1,25 @@
+[
+  {
+    "brevoCampaignId": 101,
+    "name": "Welcome Newsletter",
+    "subject": "Welcome to Our Platform!",
+    "status": "DRAFT",
+    "adminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a",
+    "emailListId": 1,
+    "createdAt": "2025-07-27T13:00:00.000Z",
+    "updatedAt": "2025-07-27T13:00:00.000Z",
+    "htmlContent": "<h1>Welcome to our platform</h1><p>We're glad you're here.</p>"
+  },
+  {
+    "brevoCampaignId": 102,
+    "name": "Summer Sale",
+    "subject": "Exclusive 20% Discount!",
+    "status": "SENT",
+    "adminCognitoId": "14182448-5061-70ad-1f29-cffef1e1b05a",
+    "emailListId": 2,
+    "createdAt": "2025-07-27T13:00:00.000Z",
+    "updatedAt": "2025-07-27T13:00:00.000Z",
+    "scheduledAt": "2025-07-27T14:00:00.000Z",
+    "htmlContent": "<h1>Welcome to our platform</h1><p>We're glad you're here.</p>"
+  }
+]

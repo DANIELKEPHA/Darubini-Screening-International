@@ -1,0 +1,29 @@
+[
+  {
+    "emailCampaignId": 1,
+    "fileName": "newsletter.pdf",
+    "filePath": "attachments/123e4567-e89b-12d3-a456-426614174000-newsletter.pdf",
+    "mimeType": "application/pdf",
+    "size": 1048576,
+    "createdAt": "2025-08-01T12:00:00.000Z",
+    "updatedAt": "2025-08-01T12:00:00.000Z"
+  },
+  {
+    "emailCampaignId": 1,
+    "fileName": "banner.jpg",
+    "filePath": "attachments/987fcdeb-51a2-43c4-9d7e-8f9a0b1c2d3e-banner.jpg",
+    "mimeType": "image/jpeg",
+    "size": 524288,
+    "createdAt": "2025-08-01T12:00:00.000Z",
+    "updatedAt": "2025-08-01T12:00:00.000Z"
+  },
+  {
+    "emailCampaignId": 2,
+    "fileName": "report.docx",
+    "filePath": "attachments/456e789f-23b4-45d6-a789-0123456789ab-report.docx",
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 2097152,
+    "createdAt": "2025-08-02T12:00:00.000Z",
+    "updatedAt": "2025-08-02T12:00:00.000Z"
+  }
+]

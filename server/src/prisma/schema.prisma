@@ -484,9 +484,9 @@ model Invoice {
   notes              String?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
-  createdByAccounts     Accounts?     @relation(fields: [createdByCognitoId], references: [cognitoId], map: "Invoice_Admin_createdByCognitoId_fkey")
+  createdByAccounts     Accounts?     @relation(fields: [createdByCognitoId], references: [cognitoId], map: "Invoice_Accounts_createdByCognitoId_fkey")
   createdByAdmin     Admin?        @relation(fields: [createdByCognitoId], references: [cognitoId], map: "Invoice_Admin_createdByCognitoId_fkey")
-  createdByStaff     Staff?        @relation(fields: [createdByCognitoId], references: [cognitoId], map: "Invoice_Admin_createdByCognitoId_fkey")
+  createdByStaff     Staff?        @relation(fields: [createdByCognitoId], references: [cognitoId], map: "Invoice_Staff_createdByCognitoId_fkey")
   clientExpense      ClientExpense @relation(fields: [clientExpenseId], references: [id], onDelete: Cascade)
   clientList         ClientList?   @relation(fields: [clientListId], references: [id])
   items              InvoiceItem[]

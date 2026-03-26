@@ -95,6 +95,7 @@ export const createCashAccount = async (req: Request, res: Response): Promise<vo
                 description: description ? sanitizeHtml(description) : null,
                 currency: sanitizeHtml(currency),
                 balance: new Prisma.Decimal(balance),
+                updatedAt: new Date(), // Add this line
                 [role === "admin"
                     ? "createdByAdminCognitoId"
                     : "createdByAccountsCognitoId"]: cognitoId,
@@ -175,8 +176,8 @@ export const getCashAccounts = async (req: Request, res: Response): Promise<void
                 skip: (pageNumber - 1) * limitNumber,
                 take: limitNumber,
                 include: {
-                    createdByAdmin: true,
-                    createdByAccounts: true,
+                    Admin: true,      // Fixed: matches schema relation name
+                    Accounts: true,   // Fixed: matches schema relation name
                 },
             }),
             prisma.cashAccount.count(),
@@ -217,9 +218,8 @@ export const getCashAccounts = async (req: Request, res: Response): Promise<void
             timestamp: new Date().toISOString(),
         });
         res.status(500).json({ message: "Internal server error" });
-    } finally {
-        await prisma.$disconnect();
     }
+    // Remove the finally block with $disconnect()
 };
 
 export const getCashAccount = async (req: Request, res: Response): Promise<void> => {
@@ -247,8 +247,8 @@ export const getCashAccount = async (req: Request, res: Response): Promise<void>
         const account = await prisma.cashAccount.findUnique({
             where: { id: idNumber },
             include: {
-                createdByAdmin: true,
-                createdByAccounts: true,
+                Admin: true,      // Changed from createdByAdmin
+                Accounts: true,   // Changed from createdByAccounts
             },
         });
 
@@ -293,9 +293,8 @@ export const getCashAccount = async (req: Request, res: Response): Promise<void>
             timestamp: new Date().toISOString(),
         });
         res.status(500).json({ message: "Internal server error" });
-    } finally {
-        await prisma.$disconnect();
     }
+    // Remove the finally block with $disconnect()
 };
 
 export const updateCashAccount = async (req: Request, res: Response): Promise<void> => {
@@ -393,8 +392,8 @@ export const updateCashAccount = async (req: Request, res: Response): Promise<vo
             where: { id: idNumber },
             data,
             include: {
-                createdByAdmin: true,
-                createdByAccounts: true,
+                Admin: true,      // Changed from createdByAdmin
+                Accounts: true,   // Changed from createdByAccounts
             },
         });
 
@@ -452,9 +451,8 @@ export const updateCashAccount = async (req: Request, res: Response): Promise<vo
         }
 
         res.status(500).json({ message: "Internal server error" });
-    } finally {
-        await prisma.$disconnect();
     }
+    // Remove the finally block with $disconnect()
 };
 
 export const closeCashAccount = async (req: Request, res: Response): Promise<void> => {

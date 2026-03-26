@@ -76,6 +76,7 @@ const createCashAccount = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 description: description ? (0, sanitize_html_1.default)(description) : null,
                 currency: (0, sanitize_html_1.default)(currency),
                 balance: new client_1.Prisma.Decimal(balance),
+                updatedAt: new Date(), // Add this line
                 [role === "admin"
                     ? "createdByAdminCognitoId"
                     : "createdByAccountsCognitoId"]: cognitoId,
@@ -148,8 +149,8 @@ const getCashAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function
                 skip: (pageNumber - 1) * limitNumber,
                 take: limitNumber,
                 include: {
-                    createdByAdmin: true,
-                    createdByAccounts: true,
+                    Admin: true, // Fixed: matches schema relation name
+                    Accounts: true, // Fixed: matches schema relation name
                 },
             }),
             prisma.cashAccount.count(),
@@ -189,9 +190,7 @@ const getCashAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function
         });
         res.status(500).json({ message: "Internal server error" });
     }
-    finally {
-        yield prisma.$disconnect();
-    }
+    // Remove the finally block with $disconnect()
 });
 exports.getCashAccounts = getCashAccounts;
 const getCashAccount = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -215,8 +214,8 @@ const getCashAccount = (req, res) => __awaiter(void 0, void 0, void 0, function*
         const account = yield prisma.cashAccount.findUnique({
             where: { id: idNumber },
             include: {
-                createdByAdmin: true,
-                createdByAccounts: true,
+                Admin: true, // Changed from createdByAdmin
+                Accounts: true, // Changed from createdByAccounts
             },
         });
         if (!account) {
@@ -259,9 +258,7 @@ const getCashAccount = (req, res) => __awaiter(void 0, void 0, void 0, function*
         });
         res.status(500).json({ message: "Internal server error" });
     }
-    finally {
-        yield prisma.$disconnect();
-    }
+    // Remove the finally block with $disconnect()
 });
 exports.getCashAccount = getCashAccount;
 const updateCashAccount = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -340,8 +337,8 @@ const updateCashAccount = (req, res) => __awaiter(void 0, void 0, void 0, functi
             where: { id: idNumber },
             data,
             include: {
-                createdByAdmin: true,
-                createdByAccounts: true,
+                Admin: true, // Changed from createdByAdmin
+                Accounts: true, // Changed from createdByAccounts
             },
         });
         const actorFieldMap = {
@@ -388,9 +385,7 @@ const updateCashAccount = (req, res) => __awaiter(void 0, void 0, void 0, functi
         }
         res.status(500).json({ message: "Internal server error" });
     }
-    finally {
-        yield prisma.$disconnect();
-    }
+    // Remove the finally block with $disconnect()
 });
 exports.updateCashAccount = updateCashAccount;
 const closeCashAccount = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

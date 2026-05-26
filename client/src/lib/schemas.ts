@@ -46,9 +46,26 @@ export const expenseSchema = z.object({
 export type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 export const settingsSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Invalid email address"),
+    phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+
+    idNumber: z.string().optional(),
+
+    supervisor: z.string().optional(),
+    bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
+
+    dateOfHire: z.string().optional(),
+    contractType: z.enum(["Full-time", "Part-time", "Contractual", "Permanent", ""]).optional(),
+    contractPeriod: z.string().optional(),
+    department: z.string().optional(),
+
+    dateOfBirth: z.string().optional(),
+    gender: z.enum(["Male", "Female", "Other", ""]).optional(),
+    nationality: z.string().optional(),
+    language: z.string().optional(),
+
+    profilePicture: z.any().optional(),
 });
 
 export type SettingsFormData = z.infer<typeof settingsSchema>;

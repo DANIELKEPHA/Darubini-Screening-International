@@ -81,7 +81,7 @@ export default function ClientExpenseForm({
     const [createClientExpense, { isLoading: isCreating }] = useCreateClientExpenseMutation();
     const [updateClientExpense, { isLoading: isUpdating }] = useUpdateClientExpenseMutation();
 
-    const [taxRate, setTaxRate] = React.useState(16);
+    const [taxRate, setTaxRate] = React.useState(0);
     const [isAddingClient, setIsAddingClient] = React.useState(false);
 
     // Confirmation dialog states

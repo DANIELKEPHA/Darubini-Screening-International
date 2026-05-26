@@ -105,23 +105,18 @@ export const api = createApi({
                     const session = await fetchAuthSession();
                     const { idToken } = session.tokens ?? {};
 
-                    // If no authentication token is found, return null instead of throwing an error
                     if (!idToken) {
-                        // Optionally log for debugging, but avoid exposing to the user
-                        console.debug("getAuthUser: No authentication token found, assuming unauthenticated user");
                         return { data: null };
                     }
 
                     const user = await getCurrentUser();
                     const userRole = idToken.payload["custom:role"] as UserRole;
 
-                    // Validate role
                     const validRoles: UserRole[] = ["admin", "user", "accounts", "staff"];
                     if (!validRoles.includes(userRole)) {
                         throw new Error(`Invalid user role: ${userRole}`);
                     }
 
-                    // Map role to endpoint
                     let endpoint: string;
                     switch (userRole) {
                         case "admin":
@@ -140,11 +135,9 @@ export const api = createApi({
                             throw new Error(`Unsupported user role: ${userRole}`);
                     }
 
-
                     let userDetailsResponse = await fetchWithBQ(endpoint);
 
                     if (userDetailsResponse.error && userDetailsResponse.error.status === 404) {
-
                         userDetailsResponse = await withToast(
                             createNewUserInDatabase(user, idToken, userRole, fetchWithBQ),
                             {
@@ -155,38 +148,30 @@ export const api = createApi({
                     }
 
                     if (userDetailsResponse.error) {
-                        console.error("getAuthUser: Error response:", userDetailsResponse.error);
                         throw new Error(getErrorMessage(userDetailsResponse.error));
                     }
 
                     return {
                         data: {
                             cognitoInfo: { ...user },
-                            userInfo: userDetailsResponse.data as User | Admin,
+                            userInfo: userDetailsResponse.data as any,
                             userRole,
                         },
                     };
                 } catch (error: any) {
-                    // Only log errors for debugging; avoid exposing to unauthenticated users
                     console.error("getAuthUser: Failed to fetch user data:", error);
-                    return { error: { status: "CUSTOM_ERROR", error: error.message || "Could not fetch user data" } };
+                    return {
+                        error: {
+                            status: "CUSTOM_ERROR",
+                            error: error.message || "Could not fetch user data",
+                        },
+                    };
                 }
             },
-            providesTags: (result: Users | null | undefined) => {
+            providesTags: (result) => {
                 if (!result) return [];
                 const userId = result.cognitoInfo.userId;
-                switch (result.userRole) {
-                    case "admin":
-                        return [{ type: "Admins", id: userId }];
-                    case "user":
-                        return [{ type: "User", id: userId }];
-                    case "accounts":
-                        return [{ type: "Accounts", id: userId }];
-                    case "staff":
-                        return [{ type: "Staff", id: userId }];
-                    default:
-                        return [];
-                }
+                return [{ type: result.userRole === "admin" ? "Admins" : "User", id: userId }];
             },
         }),
 
@@ -200,189 +185,587 @@ export const api = createApi({
             },
         }),
 
-        updateUserSettings: build.mutation<User, { cognitoId: string } & Partial<User>>({
-            query: ({ cognitoId, ...updatedUser }) => ({
-                url: `users/${cognitoId}`,
-                method: "PUT",
-                body: updatedUser,
-            }),
-            invalidatesTags: (result: User | undefined) => [{ type: "User", id: result?.id }],
-            async onQueryStarted({ cognitoId, ...updatedUser }, { dispatch, queryFulfilled }) {
+        getAdmin: build.query<Admin, string>({
+            query: (cognitoId) => `/admin/${cognitoId}`,
+            providesTags: (result) => [{ type: "Admins", id: result?.cognitoId }],
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    error: "Failed to load admin profile.",
+                });
+            },
+        }),
+
+        updateAdmin: build.mutation<
+            Admin,
+            {
+                cognitoId: string;
+                profilePicture?: File | string;
+            } & Partial<Admin>
+        >({
+            query: ({ cognitoId, ...updatedData }) => {
+                if (updatedData.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    // Append all text fields
+                    Object.entries(updatedData).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else if (value instanceof Date) {
+                                formData.append(key, value.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
+                    });
+
+                    return {
+                        url: `/admin/${cognitoId}`,
+                        method: "PUT",
+                        body: formData,
+                        formData: true,
+                    };
+                }
+
+                // Regular JSON update
+                return {
+                    url: `/admin/${cognitoId}`,
+                    method: "PUT",
+                    body: updatedData,
+                };
+            },
+            invalidatesTags: (result, error, { cognitoId }) => [
+                { type: "Admins", id: cognitoId },
+            ],
+            async onQueryStarted({ cognitoId, ...updatedData }, { dispatch, queryFulfilled }) {
                 const patchResult = dispatch(
-                    api.util.updateQueryData("getUser", cognitoId, (draft: User) => {
-                        Object.assign(draft, updatedUser);
+                    api.util.updateQueryData("getAdmin", cognitoId, (draft: Admin) => {
+                        const { profilePicture, ...dataWithoutFile } = updatedData;
+                        Object.assign(draft, dataWithoutFile);
+
+                        if (profilePicture instanceof File) {
+                            draft.profilePicture = URL.createObjectURL(profilePicture);
+                        }
                     })
                 );
+
                 try {
                     await queryFulfilled;
+                    toast.success("Profile updated successfully");
                 } catch {
                     patchResult.undo();
-                    toast.error("Failed to update settings. Reverting changes.");
+                    toast.error("Failed to update profile. Changes reverted.");
                 }
             },
         }),
 
         createAdmin: build.mutation<
             Admin,
-            { name: string; email: string; phoneNumber: string; role: "ADMIN"; password: string }
+            {
+                name: string;
+                email: string;
+                phoneNumber?: string;
+                idNumber?: string;
+                supervisor?: string;
+                bio?: string;
+                dateOfHire?: string | Date;
+                contractType?: string;
+                contractPeriod?: string;
+                department?: string;
+                dateOfBirth?: string | Date;
+                gender?: string;
+                nationality?: string;
+                language?: string;
+                profilePicture?: File | string;
+            }
         >({
-            query: (data) => ({
-                url: `admin`,
-                method: "POST",
-                body: data,
-            }),
-            invalidatesTags: [{ type: "Admins", id: "LIST" }],
-            async onQueryStarted(data, { dispatch, queryFulfilled }) {
-                try {
-                    await withToast(queryFulfilled, {
-                        pending: "Creating admin...",
-                        success: "Admin created successfully",
-                        error: "Failed to create admin",
+            query: (data) => {
+                if (data.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    Object.entries(data).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else if (value instanceof Date) {
+                                formData.append(key, value.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
                     });
-                } catch (err: any) {
-                    const message = err?.data?.message || "Failed to create admin";
-                    // console.error("Create admin failed:", message);
+
+                    return {
+                        url: `/admin`,
+                        method: "POST",
+                        body: formData,
+                        formData: true,
+                    };
                 }
+
+                return {
+                    url: `/admin`,
+                    method: "POST",
+                    body: data,
+                };
+            },
+            invalidatesTags: [{ type: "Admins", id: "LIST" }],
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Creating admin...",
+                    success: "Admin created successfully",
+                    error: "Failed to create admin",
+                });
+            },
+        }),
+
+        updateAdminSettings: build.mutation<
+            Admin,
+            {
+                cognitoId: string;
+                profilePicture?: File;
+            } & Partial<Admin>
+        >({
+            query: ({ cognitoId, ...updatedData }) => {
+                if (updatedData.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    Object.entries(updatedData).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else if (value instanceof Date) {
+                                formData.append(key, value.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
+                    });
+
+                    return {
+                        url: `/admin/${cognitoId}`,
+                        method: "PUT",
+                        body: formData,
+                        formData: true,
+                    };
+                }
+
+                return {
+                    url: `/admin/${cognitoId}`,
+                    method: "PUT",
+                    body: updatedData,
+                };
+            },
+            invalidatesTags: (result, error, { cognitoId }) => [
+                { type: "Admins", id: cognitoId },
+                { type: "User" },
+            ],
+            async onQueryStarted({ cognitoId, ...updatedData }, { dispatch, queryFulfilled }) {
+                const patchResult = dispatch(
+                    api.util.updateQueryData("getAuthUser", undefined, (draft: any) => {
+                        if (draft?.userInfo) {
+                            const { profilePicture, ...rest } = updatedData;
+                            Object.assign(draft.userInfo, rest);
+
+                            if (profilePicture instanceof File) {
+                                draft.userInfo.profilePicture = URL.createObjectURL(profilePicture);
+                            }
+                        }
+                    })
+                );
+
+                try {
+                    await queryFulfilled;
+                    toast.success("Profile updated successfully");
+                } catch {
+                    patchResult.undo();
+                    toast.error("Failed to update profile.");
+                }
+            },
+        }),
+
+        getAccounts: build.query<Accounts, string>({
+            query: (cognitoId) => `/accounts/${cognitoId}`,
+            providesTags: (result) => [{ type: "Accounts", id: result?.cognitoId }],
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    error: "Failed to load accounts profile.",
+                });
             },
         }),
 
         createAccounts: build.mutation<
             Accounts,
-            { name: string; email: string; phoneNumber: string; role: "ACCOUNTS"; password: string }
+            {
+                name: string;
+                email: string;
+                phoneNumber?: string;
+                idNumber?: string;
+                supervisor?: string;
+                bio?: string;
+                dateOfHire?: string | Date;
+                contractType?: string;
+                contractPeriod?: string;
+                department?: string;
+                dateOfBirth?: string | Date;
+                gender?: string;
+                nationality?: string;
+                language?: string;
+                profilePicture?: File | string;
+            }
         >({
-            query: (data) => ({
-                url: `accounts`,
-                method: "POST",
-                body: data,
-            }),
-            invalidatesTags: [{ type: "Accounts", id: "LIST" }],
-            async onQueryStarted(data, { dispatch, queryFulfilled }) {
-                try {
-                    await withToast(queryFulfilled, {
-                        pending: "Creating accounts user...",
-                        success: "Accounts user created successfully",
-                        error: "Failed to create accounts user",
+            query: (data) => {
+                if (data.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    Object.entries(data).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else if (value instanceof Date) {
+                                formData.append(key, value.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
                     });
-                } catch (err: any) {
-                    const message = err?.data?.message || "Failed to create accounts user";
-                    // console.error("Create accounts user failed:", message);
+
+                    return {
+                        url: `/accounts`,
+                        method: "POST",
+                        body: formData,
+                        formData: true,
+                    };
+                }
+
+                // Regular JSON
+                return {
+                    url: `/accounts`,
+                    method: "POST",
+                    body: data,
+                };
+            },
+            invalidatesTags: [{ type: "Accounts", id: "LIST" }],
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Creating accounts user...",
+                    success: "Accounts user created successfully",
+                    error: "Failed to create accounts user",
+                });
+            },
+        }),
+
+        updateAccounts: build.mutation<
+            Accounts,
+            { cognitoId: string; profilePicture?: File | string } & Partial<Accounts>
+        >({
+            query: ({ cognitoId, ...updatedData }) => {
+                if (updatedData.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    Object.entries(updatedData).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else if (value instanceof Date) {
+                                formData.append(key, value.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
+                    });
+
+                    return {
+                        url: `/accounts/${cognitoId}`,
+                        method: "PUT",
+                        body: formData,
+                        formData: true,
+                    };
+                }
+
+                // Regular JSON update
+                return {
+                    url: `/accounts/${cognitoId}`,
+                    method: "PUT",
+                    body: updatedData,
+                };
+            },
+            invalidatesTags: (result, error, { cognitoId }) => [
+                { type: "Accounts", id: cognitoId },
+            ],
+            async onQueryStarted({ cognitoId, ...updatedData }, { dispatch, queryFulfilled }) {
+                const patchResult = dispatch(
+                    api.util.updateQueryData("getAccounts", cognitoId, (draft: Accounts) => {
+                        const { profilePicture, ...dataWithoutFile } = updatedData;
+                        Object.assign(draft, dataWithoutFile);
+
+                        if (profilePicture instanceof File) {
+                            draft.profilePicture = URL.createObjectURL(profilePicture);
+                        }
+                    })
+                );
+
+                try {
+                    await queryFulfilled;
+                    toast.success("Profile updated successfully");
+                } catch {
+                    patchResult.undo();
+                    toast.error("Failed to update profile. Changes reverted.");
                 }
             },
         }),
 
         updateAccountsSettings: build.mutation<
             Accounts,
-            { cognitoId: string } & Partial<Accounts>
+            { cognitoId: string; profilePicture?: File } & Partial<Accounts>
         >({
-            query: ({ cognitoId, ...updatedAccounts }) => ({
-                url: `accounts/${cognitoId}`,
-                method: "PUT",
-                body: updatedAccounts,
-            }),
-            invalidatesTags: (result: Accounts | undefined) => [
-                { type: "Accounts", id: result?.id },
+            query: ({ cognitoId, ...updatedData }) => {
+                if (updatedData.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    Object.entries(updatedData).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else if (value instanceof Date) {
+                                formData.append(key, value.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
+                    });
+
+                    return {
+                        url: `/accounts/${cognitoId}`,
+                        method: "PUT",
+                        body: formData,
+                        formData: true,
+                    };
+                }
+
+                return {
+                    url: `/accounts/${cognitoId}`,
+                    method: "PUT",
+                    body: updatedData,
+                };
+            },
+            invalidatesTags: (result, error, { cognitoId }) => [
+                { type: "Accounts", id: cognitoId },
+                { type: "User" },
             ],
-            async onQueryStarted(
-                { cognitoId, ...updatedAccounts }: { cognitoId: string } & Partial<Accounts>,
-                { dispatch, queryFulfilled }
-            ) {
+            async onQueryStarted({ cognitoId, ...updatedData }, { dispatch, queryFulfilled }) {
                 const patchResult = dispatch(
-                    api.util.updateQueryData("getAuthUser", undefined, (draft: Users | null) => {
-                        if (draft?.userInfo && "role" in draft.userInfo && draft.userRole === "accounts") {
-                            Object.assign(draft.userInfo, updatedAccounts);
+                    api.util.updateQueryData("getAuthUser", undefined, (draft: any) => {
+                        if (draft?.userInfo && draft.userRole === "ACCOUNTS") {
+                            const { profilePicture, ...rest } = updatedData;
+                            Object.assign(draft.userInfo, rest);
+
+                            if (profilePicture instanceof File) {
+                                draft.userInfo.profilePicture = URL.createObjectURL(profilePicture);
+                            }
                         }
                     })
                 );
+
                 try {
                     await queryFulfilled;
                     toast.success("Accounts settings updated successfully");
                 } catch {
                     patchResult.undo();
-                    toast.error("Failed to update accounts settings. Reverting changes.");
+                    toast.error("Failed to update accounts settings.");
+                }
+            },
+        }),
+
+        getStaff: build.query<Staff, string>({
+            query: (cognitoId) => `/staff/${cognitoId}`,
+            providesTags: (result) => [{ type: "Staff", id: result?.cognitoId }],
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    error: "Failed to load staff profile.",
+                });
+            },
+        }),
+
+        createStaff: build.mutation<
+            Staff,
+            {
+                name: string;
+                email: string;
+                phoneNumber?: string;
+                idNumber?: string;
+                supervisor?: string;
+                bio?: string;
+                dateOfHire?: string | Date;
+                contractType?: string;
+                contractPeriod?: string;
+                department?: string;
+                dateOfBirth?: string | Date;
+                gender?: string;
+                nationality?: string;
+                language?: string;
+                profilePicture?: File | string;
+            }
+        >({
+            query: (data) => {
+                if (data.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    Object.entries(data).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else if (value instanceof Date) {
+                                formData.append(key, value.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
+                    });
+
+                    return {
+                        url: `/staff`,
+                        method: "POST",
+                        body: formData,
+                        formData: true,
+                    };
+                }
+
+                // Regular JSON
+                return {
+                    url: `/staff`,
+                    method: "POST",
+                    body: data,
+                };
+            },
+            invalidatesTags: [{ type: "Staff", id: "LIST" }],
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Creating staff user...",
+                    success: "Staff user created successfully",
+                    error: "Failed to create staff user",
+                });
+            },
+        }),
+
+        updateStaff: build.mutation<
+            Staff,
+            { cognitoId: string; profilePicture?: File | string } & Partial<Staff>
+        >({
+            query: ({ cognitoId, ...updatedData }) => {
+                if (updatedData.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    Object.entries(updatedData).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else if (value instanceof Date) {
+                                formData.append(key, value.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
+                    });
+
+                    return {
+                        url: `/staff/${cognitoId}`,
+                        method: "PUT",
+                        body: formData,
+                        formData: true,
+                    };
+                }
+
+                // Regular JSON update
+                return {
+                    url: `/staff/${cognitoId}`,
+                    method: "PUT",
+                    body: updatedData,
+                };
+            },
+            invalidatesTags: (result, error, { cognitoId }) => [
+                { type: "Staff", id: cognitoId },
+            ],
+            async onQueryStarted({ cognitoId, ...updatedData }, { dispatch, queryFulfilled }) {
+                const patchResult = dispatch(
+                    api.util.updateQueryData("getStaff", cognitoId, (draft: Staff) => {
+                        const { profilePicture, ...dataWithoutFile } = updatedData;
+                        Object.assign(draft, dataWithoutFile);
+
+                        if (profilePicture instanceof File) {
+                            draft.profilePicture = URL.createObjectURL(profilePicture);
+                        }
+                    })
+                );
+
+                try {
+                    await queryFulfilled;
+                    toast.success("Profile updated successfully");
+                } catch {
+                    patchResult.undo();
+                    toast.error("Failed to update profile. Changes reverted.");
                 }
             },
         }),
 
         updateStaffSettings: build.mutation<
             Staff,
-            { cognitoId: string } & Partial<Staff>
+            { cognitoId: string; profilePicture?: File } & Partial<Staff>
         >({
-            query: ({ cognitoId, ...updatedStaff }) => ({
-                url: `staff/${cognitoId}`,
-                method: "PUT",
-                body: updatedStaff,
-            }),
-            invalidatesTags: (result: Staff | undefined) => [
-                { type: "Staff", id: result?.id },
+            query: ({ cognitoId, ...updatedData }) => {
+                if (updatedData.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    Object.entries(updatedData).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else if (value instanceof Date) {
+                                formData.append(key, value.toISOString());
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
+                    });
+
+                    return {
+                        url: `/staff/${cognitoId}`,
+                        method: "PUT",
+                        body: formData,
+                        formData: true,
+                    };
+                }
+
+                return {
+                    url: `/staff/${cognitoId}`,
+                    method: "PUT",
+                    body: updatedData,
+                };
+            },
+            invalidatesTags: (result, error, { cognitoId }) => [
+                { type: "Staff", id: cognitoId },
+                { type: "User" },
             ],
-            async onQueryStarted(
-                { cognitoId, ...updatedStaff }: { cognitoId: string } & Partial<Staff>,
-                { dispatch, queryFulfilled }
-            ) {
+            async onQueryStarted({ cognitoId, ...updatedData }, { dispatch, queryFulfilled }) {
                 const patchResult = dispatch(
-                    api.util.updateQueryData("getAuthUser", undefined, (draft: Users | null) => {
-                        if (draft?.userInfo && "role" in draft.userInfo && draft.userRole === "staff") {
-                            Object.assign(draft.userInfo, updatedStaff);
+                    api.util.updateQueryData("getAuthUser", undefined, (draft: any) => {
+                        if (draft?.userInfo && draft.userRole === "STAFF") {
+                            const { profilePicture, ...rest } = updatedData;
+                            Object.assign(draft.userInfo, rest);
+
+                            if (profilePicture instanceof File) {
+                                draft.userInfo.profilePicture = URL.createObjectURL(profilePicture);
+                            }
                         }
                     })
                 );
+
                 try {
                     await queryFulfilled;
                     toast.success("Staff settings updated successfully");
                 } catch {
                     patchResult.undo();
-                    toast.error("Failed to update staff settings. Reverting changes.");
-                }
-            },
-        }),
-
-        createStaff: build.mutation<
-            Staff,
-            { name: string; email: string; phoneNumber: string; role: "STAFF"; password: string }
-        >({
-            query: (data) => ({
-                url: `staff`,
-                method: "POST",
-                body: data,
-            }),
-            invalidatesTags: [{ type: "Staff", id: "LIST" }],
-            async onQueryStarted(data, { dispatch, queryFulfilled }) {
-                try {
-                    await withToast(queryFulfilled, {
-                        pending: "Creating staff user...",
-                        success: "Staff user created successfully",
-                        error: "Failed to create staff user",
-                    });
-                } catch (err: any) {
-                    const message = err?.data?.message || "Failed to create staff user";
-                    // console.error("Create staff user failed:", message);
-                }
-            },
-        }),
-
-        updateAdminSettings: build.mutation<
-            Admin,
-            { cognitoId: string } & Partial<Admin>
-        >({
-            query: ({ cognitoId, ...updatedAdmin }) => ({
-                url: `admin/${cognitoId}`,
-                method: "PUT",
-                body: updatedAdmin,
-            }),
-            invalidatesTags: (result: Admin | undefined) => [{ type: "Admins", id: result?.id }],
-            async onQueryStarted({ cognitoId, ...updatedAdmin }: { cognitoId: string } & Partial<Admin>, { dispatch, queryFulfilled }) {
-                const patchResult = dispatch(
-                    api.util.updateQueryData("getAuthUser", undefined, (draft: Users | null) => {
-                        if (draft?.userInfo && "role" in draft.userInfo) {
-                            Object.assign(draft.userInfo, updatedAdmin);
-                        }
-                    })
-                );
-                try {
-                    await queryFulfilled;
-                } catch {
-                    patchResult.undo();
-                    toast.error("Failed to update settings. Reverting changes.");
+                    toast.error("Failed to update staff settings.");
                 }
             },
         }),
@@ -3970,12 +4353,12 @@ export const api = createApi({
 
 export const {
     useGetAuthUserQuery,
-    useUpdateUserSettingsMutation,
     useUpdateAdminSettingsMutation,
     useUpdateAccountsSettingsMutation,
     useUpdateStaffSettingsMutation,
     useGetUserQuery,
     useCreateAdminMutation,
+    useUpdateAdminMutation,
     useCreateAccountsMutation,
     useCreateStaffMutation,
     useCreateContactMutation,

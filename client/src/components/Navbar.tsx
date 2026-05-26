@@ -69,21 +69,21 @@ const Navbar = () => {
     { icon: Mail, label: "Emails", href: "/admin/emails" },
     { icon: FileText, label: "Blogs", href: "/admin/blogs" },
     { icon: Clock, label: "Chronos", href: "/admin/chronos" },
-    { icon: Settings, label: "Settings", href: "/admin/settings" },
+    { icon: Settings, label: "Profile", href: "/admin/settings" },
   ];
 
   const accountsLinks: NavLink[] = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/accounts/dashboard" },
     { icon: FileText, label: "Blogs", href: "/accounts/blogs" },
     { icon: Clock, label: "Chronos", href: "/accounts/chronos" },
-    { icon: Settings, label: "Settings", href: "/accounts/settings" },
+    { icon: Settings, label: "Profile", href: "/accounts/settings" },
   ];
 
   const staffLinks: NavLink[] = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/staff/dashboard" },
     { icon: FileText, label: "Blogs", href: "/staff/blogs" },
     { icon: Clock, label: "Chronos", href: "/staff/chronos" },
-    { icon: Settings, label: "Settings", href: "/staff/settings" },
+    { icon: Settings, label: "Profile", href: "/staff/settings" },
   ];
 
   const userLinks: NavLink[] = [

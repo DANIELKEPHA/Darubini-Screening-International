@@ -10,9 +10,9 @@ import { ProfileEditForm } from "./ProfileEditForm";
 import { ProfilePage } from "./ProfilePage";
 import { NotificationPage } from "./NotificationPage";
 import { fetchAuthSession } from "aws-amplify/auth";
-import Requests from "@/app/(dashboard)/admin/settings/Requests";
+import Requests from "@/app/(dashboard)/staff/settings/Requests";
 
-const ManagerSettings = () => {
+const StaffSettings = () => {
     const { data: authUser, isLoading, error } = useGetAuthUserQuery(undefined, {
         pollingInterval: 0
     });
@@ -46,7 +46,7 @@ const ManagerSettings = () => {
                 formData.append("profilePicture", data.profilePicture);
 
                 response = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/${authUser.cognitoInfo.userId}`,
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/staff/${authUser.cognitoInfo.userId}`,
                     {
                         method: "PUT",
                         headers: {
@@ -57,7 +57,7 @@ const ManagerSettings = () => {
                 );
             } else {
                 response = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/${authUser.cognitoInfo.userId}`,
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/staff/${authUser.cognitoInfo.userId}`,
                     {
                         method: "PUT",
                         headers: {
@@ -123,7 +123,7 @@ const ManagerSettings = () => {
         );
     }
 
-    if (error || !authUser || authUser.userRole !== "admin") {
+    if (error || !authUser || authUser.userRole !== "staff") {
         toast.error("Access denied or user not found");
         router.push("/signin");
         return null;
@@ -185,4 +185,4 @@ const ManagerSettings = () => {
     );
 };
 
-export default ManagerSettings;
+export default StaffSettings;

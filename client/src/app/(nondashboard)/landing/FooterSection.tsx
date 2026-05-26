@@ -169,7 +169,7 @@ const FooterSection = () => {
                 <div className="flex items-start">
                   <MapPin className="h-4 w-4 mt-1 mr-3 flex-shrink-0" />
                   <span>
-                  TRV Plaza, 58 Muthithi Road, Westlands.<br />
+                  Leomar Court, 45 Westlands Road, Westlands.<br />
                   P.O Box 6079 - 00100, GPO Nairobi, Kenya
                 </span>
                 </div>
@@ -194,7 +194,7 @@ const FooterSection = () => {
                   <div className="space-y-1">
                     <a href="mailto:info@darubiniscreening.com" className="block hover:text-white transition-colors">info@darubiniscreening.com</a>
                     <a href="mailto:relations@darubiniscreening.com" className="block hover:text-white transition-colors">relations@darubiniscreening.com</a>
-                    <a href="mailto:hadijaj@darubiniscreening.com" className="block hover:text-white transition-colors">relations@darubiniscreening.com</a>
+                    <a href="mailto:hadijaj@darubiniscreening.com" className="block hover:text-white transition-colors">hadijaj@darubiniscreening.com</a>
                   </div>
                 </div>
               </address>

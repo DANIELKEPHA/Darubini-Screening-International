@@ -9,7 +9,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import {NameTag} from "@/app/(dashboard)/admin/settings/NameTag";
+import {NameTag} from "@/app/(dashboard)/accounts/settings/NameTag";
 
 interface ProfilePageProps {
     authUser: any;

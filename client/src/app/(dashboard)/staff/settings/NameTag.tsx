@@ -1,4 +1,3 @@
-// components/NameTag.tsx
 "use client";
 
 import React from "react";

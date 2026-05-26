@@ -113,6 +113,9 @@ return (
         <div className="border-b border-gray-200 bg-white">
             <UtilitiesTab />
         </div>
+        <div className="border-b border-gray-200 bg-white">
+            <UtilitiesTab />
+        </div>
 
         <div className="flex-1 overflow-hidden">
             {isViewingDetails ? (

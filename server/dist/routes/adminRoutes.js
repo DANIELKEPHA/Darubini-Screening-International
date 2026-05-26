@@ -6,8 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const adminControllers_1 = require("../controllers/adminControllers");
 const authMiddleware_1 = require("../middleware/authMiddleware");
+const upload_1 = require("../middleware/upload");
 const router = express_1.default.Router();
+// GET - No file upload needed
 router.get("/:cognitoId", (0, authMiddleware_1.authMiddleware)(["admin"]), adminControllers_1.getAdmin);
-router.put("/:cognitoId", (0, authMiddleware_1.authMiddleware)(["admin"]), adminControllers_1.updateAdmin);
-router.post("/", (0, authMiddleware_1.authMiddleware)(["admin"]), adminControllers_1.createAdmin);
+router.post("/", (0, authMiddleware_1.authMiddleware)(["admin"]), upload_1.upload.single("profilePicture"), adminControllers_1.createAdmin);
+router.put("/:cognitoId", (0, authMiddleware_1.authMiddleware)(["admin"]), upload_1.upload.single("profilePicture"), adminControllers_1.updateAdmin);
 exports.default = router;

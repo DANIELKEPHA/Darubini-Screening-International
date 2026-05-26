@@ -76,7 +76,7 @@ const authMiddleware = (allowedRoles, allowUnauthenticated = false) => {
                 throw new Error("Invalid token: Missing custom:role attribute");
             }
             const userRole = decoded["custom:role"].toLowerCase();
-            const validRoles = ["admin", "user", "accounts", "staff"];
+            const validRoles = ["admin", "accounts", "staff"];
             if (!validRoles.includes(userRole)) {
                 throw new Error(`Invalid user role: ${userRole}`);
             }

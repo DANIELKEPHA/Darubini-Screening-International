@@ -5,47 +5,67 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
-  url        = "postgresql://postgrase_database_user:kDNjxpQQ0q7h2R4UG1jmSVxaR9PZ56LV@dpg-d3942cemcj7s738o3jjg-a.oregon-postgres.render.com/postgrase_database?"
-  extensions = [postgis(schema: "public")]
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
 }
 
 model Admin {
-  id                          Int                  @id @default(autoincrement())
-  cognitoId                   String               @unique
-  name                        String
-  email                       String
-  phoneNumber                 String?
-  role                        UserRole             @default(ADMIN)
-  attendanceRecords           Attendance[]         @relation("AdminAttendanceRecords")
-  auditLogs                   AuditLog[]           @relation("AdminAuditLogs")
-  createdBankAccounts         BankAccount[]        @relation("AdminBankAccountsCreated")
-  blogs                       Blog[]
-  CashAccount                 CashAccount[]
-  chatRooms                   ChatRoom[]           @relation("AdminChatRooms")
-  approvedClientExpenses      ClientExpense[]      @relation("AdminClientExpensesApproved")
-  createdClientExpenses       ClientExpense[]      @relation("AdminClientExpensesCreated")
-  createdClientLists          ClientList[]         @relation("AdminClientListsCreated")
-  emailCampaigns              EmailCampaign[]      @relation("AdminEmailCampaigns")
-  emailLists                  EmailList[]          @relation("AdminEmailLists")
-  Invoice                     Invoice[]
-  createdMobileAccounts       MobileAccount[]      @relation("AdminMobileAccountsCreated")
-  approvedOperationalExpenses OperationalExpense[] @relation("AdminOperationalExpensesApproved")
-  createdOperationalExpenses  OperationalExpense[] @relation("AdminOperationalExpensesCreated")
-  createdOtherAccounts        OtherAccount[]       @relation("AdminOtherAccountsCreated")
-  proofFiles                  ProofFile[]          @relation("AdminProofFiles")
-  approvedQuotations          Quotation[]          @relation("AdminQuotationsApproved")
-  createdQuotations           Quotation[]          @relation("AdminQuotationsCreated")
-  StickyNote                  StickyNote[]
-  StickyNoteShare             StickyNoteShare[]
-  createdTransactions         Transaction[]        @relation("AdminTransactionsCreated")
-  clientExpenseApprovals      ClientExpense[]      @relation("AdminClientExpenseApprovals")
-  clientExpenses              ClientExpense[]      @relation("AdminClientExpenses")
-  operationalExpenseApprovals OperationalExpense[] @relation("AdminOperationalExpenseApprovals")
-  operationalExpenses         OperationalExpense[] @relation("AdminOperationalExpenses")
-  quotations                  Quotation[]          @relation("AdminQuotations")
+  id                Int      @id @default(autoincrement())
+  cognitoId         String   @unique
+  name              String
+  email             String
+  phoneNumber       String?
+  idNumber          String?  @unique
+
+  supervisor        String?
+  bio               String?
+  dateOfHire        DateTime?
+  contractType      String?
+  contractPeriod    String?
+  department        String?
+  dateOfBirth       DateTime?
+  gender            String?
+  nationality       String?
+  language          String?
+
+  profilePicture    String?
+  role              UserRole         @default(ADMIN)
+
+  attendanceRecords          Attendance[]              @relation("AdminAttendanceRecords")
+  auditLogs                  AuditLog[]                @relation("AdminAuditLogs")
+  createdBankAccounts        BankAccount[]             @relation("AdminBankAccountsCreated")
+  blogs                      Blog[]
+  CashAccount                CashAccount[]
+  chatRooms                  ChatRoom[]                @relation("AdminChatRooms")
+  approvedClientExpenses     ClientExpense[]           @relation("AdminClientExpensesApproved")
+  createdClientExpenses      ClientExpense[]           @relation("AdminClientExpensesCreated")
+  createdClientLists         ClientList[]              @relation("AdminClientListsCreated")
+  emailCampaigns             EmailCampaign[]           @relation("AdminEmailCampaigns")
+  emailLists                 EmailList[]               @relation("AdminEmailLists")
+  Invoice                    Invoice[]
+  createdMobileAccounts      MobileAccount[]           @relation("AdminMobileAccountsCreated")
+  approvedOperationalExpenses OperationalExpense[]    @relation("AdminOperationalExpensesApproved")
+  createdOperationalExpenses OperationalExpense[]     @relation("AdminOperationalExpensesCreated")
+  createdOtherAccounts       OtherAccount[]            @relation("AdminOtherAccountsCreated")
+  proofFiles                 ProofFile[]               @relation("AdminProofFiles")
+  approvedQuotations         Quotation[]               @relation("AdminQuotationsApproved")
+  createdQuotations          Quotation[]               @relation("AdminQuotationsCreated")
+  StickyNote                 StickyNote[]
+  StickyNoteShare            StickyNoteShare[]
+  createdTransactions        Transaction[]             @relation("AdminTransactionsCreated")
+  clientExpenseApprovals     ClientExpense[]           @relation("AdminClientExpenseApprovals")
+  clientExpenses             ClientExpense[]           @relation("AdminClientExpenses")
+  operationalExpenseApprovals OperationalExpense[]     @relation("AdminOperationalExpenseApprovals")
+  operationalExpenses        OperationalExpense[]      @relation("AdminOperationalExpenses")
+  quotations                 Quotation[]               @relation("AdminQuotations")
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([email])
   @@index([role])
+  @@index([department])
+  @@index([dateOfHire])
 }
 
 model User {
@@ -77,72 +97,135 @@ model User {
 }
 
 model Accounts {
-  id                          Int                  @id @default(autoincrement())
-  cognitoId                   String               @unique
-  name                        String
-  email                       String
-  phoneNumber                 String?
-  role                        UserRole             @default(ACCOUNTS)
-  attendanceRecords           Attendance[]         @relation("AccountsAttendanceRecords")
-  auditLogs                   AuditLog[]           @relation("AccountsAuditLogs")
-  createdBankAccounts         BankAccount[]        @relation("AccountsBankAccountsCreated")
-  CashAccount                 CashAccount[]
-  chatRooms                   ChatRoom[]           @relation("AccountsChatRooms")
-  approvedClientExpenses      ClientExpense[]      @relation("AccountsClientExpensesApproved")
-  createdClientExpenses       ClientExpense[]      @relation("AccountsClientExpensesCreated")
-  createdClientLists          ClientList[]         @relation("AccountsClientListsCreated")
-  Invoice                     Invoice[]
-  createdMobileAccounts       MobileAccount[]      @relation("AccountsMobileAccountsCreated")
-  approvedOperationalExpenses OperationalExpense[] @relation("AccountsOperationalExpensesApproved")
-  createdOperationalExpenses  OperationalExpense[] @relation("AccountsOperationalExpensesCreated")
-  createdOtherAccounts        OtherAccount[]       @relation("AccountsOtherAccountsCreated")
-  proofFiles                  ProofFile[]          @relation("AccountsProofFiles")
-  approvedQuotations          Quotation[]          @relation("AccountsQuotationsApproved")
-  createdQuotations           Quotation[]          @relation("AccountsQuotationsCreated")
-  StickyNote                  StickyNote[]
-  StickyNoteShare             StickyNoteShare[]
-  createdTransactions         Transaction[]        @relation("AccountsTransactionsCreated")
-  clientExpenseApprovals      ClientExpense[]      @relation("AccountsClientExpenseApprovals")
-  clientExpenses              ClientExpense[]      @relation("AccountsClientExpenses")
-  emailLists                  EmailList[]          @relation("AccountsEmailLists")
-  operationalExpenseApprovals OperationalExpense[] @relation("AccountsOperationalExpenseApprovals")
-  operationalExpenses         OperationalExpense[] @relation("AccountsOperationalExpenses")
-  quotations                  Quotation[]          @relation("AccountsQuotations")
+  id                  Int      @id @default(autoincrement())
+  cognitoId           String   @unique
+  name                String
+  email               String
+  phoneNumber         String?
+  idNumber            String?  @unique
+  supervisor          String?
+  bio                 String?
+  dateOfHire          DateTime?
+  contractType        String?
+  contractPeriod      String?
+  department          String?
+  dateOfBirth         DateTime?
+  gender              String?
+  nationality         String?
+  language            String?
+  profilePicture      String?
+
+  role                UserRole @default(ACCOUNTS)
+
+  // Relations
+  attendanceRecords          Attendance[]                   @relation("AccountsAttendanceRecords")
+  auditLogs                  AuditLog[]                     @relation("AccountsAuditLogs")
+  createdBankAccounts        BankAccount[]                  @relation("AccountsBankAccountsCreated")
+  CashAccount                CashAccount[]
+  chatRooms                  ChatRoom[]                     @relation("AccountsChatRooms")
+
+  approvedClientExpenses     ClientExpense[]                @relation("AccountsClientExpensesApproved")
+  createdClientExpenses      ClientExpense[]                @relation("AccountsClientExpensesCreated")
+  clientExpenseApprovals     ClientExpense[]                @relation("AccountsClientExpenseApprovals")
+  clientExpenses             ClientExpense[]                @relation("AccountsClientExpenses")
+
+  createdClientLists         ClientList[]                   @relation("AccountsClientListsCreated")
+
+  emailLists                 EmailList[]                    @relation("AccountsEmailLists")
+
+  Invoice                    Invoice[]
+
+  createdMobileAccounts      MobileAccount[]                @relation("AccountsMobileAccountsCreated")
+
+  approvedOperationalExpenses OperationalExpense[]         @relation("AccountsOperationalExpensesApproved")
+  createdOperationalExpenses OperationalExpense[]          @relation("AccountsOperationalExpensesCreated")
+  operationalExpenseApprovals OperationalExpense[]         @relation("AccountsOperationalExpenseApprovals")
+  operationalExpenses        OperationalExpense[]           @relation("AccountsOperationalExpenses")
+
+  createdOtherAccounts       OtherAccount[]                 @relation("AccountsOtherAccountsCreated")
+
+  proofFiles                 ProofFile[]                    @relation("AccountsProofFiles")
+
+  approvedQuotations         Quotation[]                    @relation("AccountsQuotationsApproved")
+  createdQuotations          Quotation[]                    @relation("AccountsQuotationsCreated")
+  quotations                 Quotation[]                    @relation("AccountsQuotations")
+
+  StickyNote                 StickyNote[]
+  StickyNoteShare            StickyNoteShare[]
+
+  createdTransactions        Transaction[]                  @relation("AccountsTransactionsCreated")
+
+  // Timestamps
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
 
   @@index([email])
   @@index([role])
+  @@index([department])
+  @@index([dateOfHire])
 }
 
 model Staff {
-  id                          Int                  @id @default(autoincrement())
-  cognitoId                   String               @unique
-  name                        String
-  email                       String
-  phoneNumber                 String?
-  role                        UserRole             @default(STAFF)
-  attendanceRecords           Attendance[]         @relation("StaffAttendanceRecords")
-  auditLogs                   AuditLog[]           @relation("StaffAuditLogs")
-  chatRooms                   ChatRoom[]           @relation("StaffChatRooms")
-  approvedClientExpenses      ClientExpense[]      @relation("StaffClientExpensesApproved")
-  createdClientExpenses       ClientExpense[]      @relation("StaffClientExpensesCreated")
-  createdClientLists          ClientList[]         @relation("StaffClientListsCreated")
-  Invoice                     Invoice[]
-  approvedOperationalExpenses OperationalExpense[] @relation("StaffOperationalExpensesApproved")
-  createdOperationalExpenses  OperationalExpense[] @relation("StaffOperationalExpensesCreated")
-  proofFiles                  ProofFile[]          @relation("StaffProofFiles")
-  approvedQuotations          Quotation[]          @relation("StaffQuotationsApproved")
-  createdQuotations           Quotation[]          @relation("StaffQuotationsCreated")
-  StickyNote                  StickyNote[]
-  StickyNoteShare             StickyNoteShare[]
-  clientExpenseApprovals      ClientExpense[]      @relation("StaffClientExpenseApprovals")
-  clientExpenses              ClientExpense[]      @relation("StaffClientExpenses")
-  emailLists                  EmailList[]          @relation("StaffEmailLists")
-  operationalExpenseApprovals OperationalExpense[] @relation("StaffOperationalExpenseApprovals")
-  operationalExpenses         OperationalExpense[] @relation("StaffOperationalExpenses")
-  quotations                  Quotation[]          @relation("StaffQuotations")
+  id                  Int      @id @default(autoincrement())
+  cognitoId           String   @unique
+  name                String
+  email               String
+  phoneNumber         String?
+
+  // Added personal information fields (for consistency)
+  idNumber            String?  @unique
+  supervisor          String?
+  bio                 String?
+  dateOfHire          DateTime?
+  contractType        String?
+  contractPeriod      String?
+  department          String?
+  dateOfBirth         DateTime?
+  gender              String?
+  nationality         String?
+  language            String?
+  profilePicture      String?
+
+  role                UserRole @default(STAFF)
+
+  // Relations
+  attendanceRecords          Attendance[]                   @relation("StaffAttendanceRecords")
+  auditLogs                  AuditLog[]                     @relation("StaffAuditLogs")
+  chatRooms                  ChatRoom[]                     @relation("StaffChatRooms")
+
+  approvedClientExpenses     ClientExpense[]                @relation("StaffClientExpensesApproved")
+  createdClientExpenses      ClientExpense[]                @relation("StaffClientExpensesCreated")
+  clientExpenseApprovals     ClientExpense[]                @relation("StaffClientExpenseApprovals")
+  clientExpenses             ClientExpense[]                @relation("StaffClientExpenses")
+
+  createdClientLists         ClientList[]                   @relation("StaffClientListsCreated")
+
+  emailLists                 EmailList[]                    @relation("StaffEmailLists")
+
+  Invoice                    Invoice[]
+
+  approvedOperationalExpenses OperationalExpense[]         @relation("StaffOperationalExpensesApproved")
+  createdOperationalExpenses OperationalExpense[]          @relation("StaffOperationalExpensesCreated")
+  operationalExpenseApprovals OperationalExpense[]         @relation("StaffOperationalExpenseApprovals")
+  operationalExpenses        OperationalExpense[]           @relation("StaffOperationalExpenses")
+
+  proofFiles                 ProofFile[]                    @relation("StaffProofFiles")
+
+  approvedQuotations         Quotation[]                    @relation("StaffQuotationsApproved")
+  createdQuotations          Quotation[]                    @relation("StaffQuotationsCreated")
+  quotations                 Quotation[]                    @relation("StaffQuotations")
+
+  StickyNote                 StickyNote[]
+  StickyNoteShare            StickyNoteShare[]
+
+  // Timestamps
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
 
   @@index([email])
   @@index([role])
+  @@index([department])
+  @@index([dateOfHire])
 }
 
 model GuestUser {

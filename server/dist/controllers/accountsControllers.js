@@ -11,13 +11,46 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateAccounts = exports.createAccounts = exports.getAccounts = void 0;
 const client_1 = require("@prisma/client");
+const s3Client_1 = require("../middleware/s3Client");
 const prisma = new client_1.PrismaClient();
-// Get Accounts by cognitoId
+// ====================== GET ACCOUNTS ======================
 const getAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!req.user) {
+            res.status(401).json({ message: "Unauthorized: No user data" });
+            return;
+        }
         const { cognitoId } = req.params;
+        // Authorization: Users can only view their own profile (unless admin)
+        if (cognitoId !== req.user.id && req.user.role !== "admin") {
+            res.status(403).json({ message: "Access denied: You can only view your own profile" });
+            return;
+        }
         const accounts = yield prisma.accounts.findUnique({
             where: { cognitoId },
+            select: {
+                id: true,
+                cognitoId: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                idNumber: true,
+                profilePicture: true,
+                role: true,
+                createdAt: true,
+                updatedAt: true,
+                // Personal Fields
+                supervisor: true,
+                bio: true,
+                dateOfHire: true,
+                contractType: true,
+                contractPeriod: true,
+                department: true,
+                dateOfBirth: true,
+                gender: true,
+                nationality: true,
+                language: true,
+            },
         });
         if (accounts) {
             res.json(accounts);
@@ -27,89 +60,136 @@ const getAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
     }
     catch (error) {
-        console.error("Error retrieving accounts user:", error);
         res.status(500).json({ message: `Error retrieving accounts user: ${error.message}` });
     }
 });
 exports.getAccounts = getAccounts;
-// Create Accounts
+// ====================== CREATE ACCOUNTS ======================
 const createAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { cognitoId, name, email, phoneNumber } = req.body;
-        // Validate required fields
-        if (!cognitoId || typeof cognitoId !== "string" || cognitoId.trim() === "") {
-            res.status(400).json({ message: "Missing or invalid required field: cognitoId must be a non-empty string" });
+        if (!req.user) {
+            res.status(401).json({ message: "Unauthorized: No user data" });
             return;
         }
-        if (!name || typeof name !== "string" || name.trim() === "") {
-            res.status(400).json({ message: "Missing or invalid required field: name must be a non-empty string" });
+        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
+        const file = req.file;
+        const cognitoId = req.user.role === "admin" && req.body.cognitoId
+            ? req.body.cognitoId
+            : req.user.id;
+        if (!cognitoId) {
+            res.status(400).json({ message: "Missing cognitoId" });
             return;
         }
-        if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            res.status(400).json({ message: "Missing or invalid required field: email must be a valid email address" });
+        // Check if user already exists
+        const existingAccounts = yield prisma.accounts.findUnique({ where: { cognitoId } });
+        if (existingAccounts) {
+            res.status(409).json({ message: "Accounts user already exists" });
             return;
         }
-        if (!phoneNumber || typeof phoneNumber !== "string" || phoneNumber.trim() === "") {
-            res.status(400).json({ message: "Missing or invalid required field: phoneNumber must be a non-empty string" });
-            return;
+        // ID Number uniqueness check
+        if (idNumber) {
+            const existingId = yield prisma.accounts.findUnique({ where: { idNumber } });
+            if (existingId) {
+                res.status(409).json({ message: "ID Number already in use" });
+                return;
+            }
         }
-        // Create accounts user in Prisma
+        let profilePictureUrl = undefined;
+        if (file) {
+            const result = yield (0, s3Client_1.uploadToS3)(file.buffer, file.originalname, file.mimetype);
+            profilePictureUrl = result.url;
+        }
         const accounts = yield prisma.accounts.create({
             data: {
                 cognitoId,
                 name,
                 email,
                 phoneNumber,
+                idNumber,
+                profilePicture: profilePictureUrl,
                 role: "ACCOUNTS",
+                // New Fields
+                supervisor,
+                bio,
+                dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
+                contractType,
+                contractPeriod,
+                department,
+                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+                gender,
+                nationality,
+                language,
             },
         });
         res.status(201).json(accounts);
     }
     catch (error) {
-        console.error("Error creating accounts user:", error);
         if (error.code === "P2002") {
-            res.status(409).json({ message: `User with cognitoId ${req.body.cognitoId} already exists` });
+            res.status(409).json({ message: "Duplicate field (email or idNumber)" });
             return;
         }
         res.status(500).json({ message: `Error creating accounts user: ${error.message}` });
     }
 });
 exports.createAccounts = createAccounts;
-// Update Accounts
+// ====================== UPDATE ACCOUNTS ======================
 const updateAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!req.user) {
+            res.status(401).json({ message: "Unauthorized: No user data" });
+            return;
+        }
         const { cognitoId } = req.params;
-        const { name, email, phoneNumber } = req.body;
-        // Validate input
-        if (name && (typeof name !== "string" || name.trim() === "")) {
-            res.status(400).json({ message: "Invalid field: name must be a non-empty string" });
+        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
+        const file = req.file;
+        // Authorization check
+        if (cognitoId !== req.user.id && req.user.role !== "admin") {
+            res.status(403).json({ message: "Access denied: You can only update your own profile" });
             return;
         }
-        if (email && (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
-            res.status(400).json({ message: "Invalid field: email must be a valid email address" });
-            return;
+        // ID Number uniqueness check (excluding current user)
+        if (idNumber) {
+            const existingId = yield prisma.accounts.findFirst({
+                where: {
+                    idNumber,
+                    NOT: { cognitoId },
+                },
+            });
+            if (existingId) {
+                res.status(409).json({ message: "ID Number already in use by another user" });
+                return;
+            }
         }
-        if (phoneNumber && (typeof phoneNumber !== "string" || phoneNumber.trim() === "")) {
-            res.status(400).json({ message: "Invalid field: phoneNumber must be a non-empty string" });
-            return;
+        let profilePictureUrl = undefined;
+        if (file) {
+            const result = yield (0, s3Client_1.uploadToS3)(file.buffer, file.originalname, file.mimetype);
+            profilePictureUrl = result.url;
         }
-        const updateAccounts = yield prisma.accounts.update({
+        const updatedAccounts = yield prisma.accounts.update({
             where: { cognitoId },
-            data: {
-                name,
+            data: Object.assign({ name,
                 email,
                 phoneNumber,
-            },
+                idNumber,
+                supervisor,
+                bio, dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined, contractType,
+                contractPeriod,
+                department, dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined, gender,
+                nationality,
+                language }, (profilePictureUrl && { profilePicture: profilePictureUrl })),
         });
-        res.json(updateAccounts);
+        res.json({
+            message: "Accounts user updated successfully",
+            data: updatedAccounts,
+        });
     }
     catch (error) {
-        console.error("Error updating accounts user:", error);
         if (error.code === "P2025") {
             res.status(404).json({ message: "Accounts user not found" });
-            return;
         }
-        res.status(500).json({ message: `Error updating accounts user: ${error.message}` });
+        else {
+            res.status(500).json({ message: `Error updating accounts user: ${error.message}` });
+        }
     }
 });
 exports.updateAccounts = updateAccounts;

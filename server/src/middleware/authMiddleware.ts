@@ -13,7 +13,7 @@ interface AuthUser {
   role: UserRole;
 }
 
-type UserRole = "admin" | "user" | "accounts" | "staff";
+type UserRole = "admin" | "accounts" | "staff";
 
 declare global {
   namespace Express {
@@ -90,7 +90,7 @@ export const authMiddleware = (allowedRoles: UserRole[], allowUnauthenticated = 
       }
 
       const userRole = decoded["custom:role"].toLowerCase() as UserRole;
-      const validRoles: UserRole[] = ["admin", "user", "accounts", "staff"];
+      const validRoles: UserRole[] = ["admin", "accounts", "staff"];
       if (!validRoles.includes(userRole)) {
         throw new Error(`Invalid user role: ${userRole}`);
       }

@@ -42,12 +42,22 @@ const prisma = new PrismaClient();
 async function testDB() {
   try {
     await prisma.$connect();
+
+    const result = await prisma.$queryRawUnsafe(
+        "SELECT current_database(), inet_server_addr();"
+    );
+
     console.log("✅ Connected to PostgreSQL!");
+    console.log("📊 DB Info:", result);
+
   } catch (error) {
     console.error("❌ Failed to connect to DB", error);
   }
 }
+
 testDB();
+
+console.log("🛢️ DB URL:", process.env.DATABASE_URL);
 
 app.use(express.json());
 app.use(helmet());
@@ -62,11 +72,11 @@ app.get("/", (req, res) => {
 });
 
 // Routes
-app.use("/users", authMiddleware(["user", "admin"]), userRoutes);
+app.use("/users", authMiddleware(["admin"]), userRoutes);
 app.use("/contacts", contactRoutes);
 app.use("/admin", adminRoutes);
 app.use("/email", emailRoutes);
-app.use("/chat", authMiddleware(["user", "accounts", "staff", "admin"], true), chatRoutes(io));
+app.use("/chat", authMiddleware(["accounts", "staff", "admin"], true), chatRoutes(io));
 app.use("/blogs", blogRoutes);
 app.use("/client-expenses", clientExpenseRoutes);
 app.use("/operational-expenses", operationalExpenseRoutes);
@@ -87,7 +97,7 @@ app.use("/clients", clientRoutes);
 app.use("/invoices", invoiceRoutes);
 app.use("/stickynotes", stickyNotesRoutes);
 
-httpServer.listen(Number(process.env.PORT) || 3001, "0.0.0.0", () => {
+httpServer.listen(Number(process.env.PORT) || 3002, "0.0.0.0", () => {
   console.log(`Server + WebSocket running on port ${process.env.PORT || 3001}`);
 });
 

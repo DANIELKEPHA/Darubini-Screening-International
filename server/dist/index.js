@@ -55,7 +55,9 @@ function testDB() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield prisma.$connect();
+            const result = yield prisma.$queryRawUnsafe("SELECT current_database(), inet_server_addr();");
             console.log("✅ Connected to PostgreSQL!");
+            console.log("📊 DB Info:", result);
         }
         catch (error) {
             console.error("❌ Failed to connect to DB", error);
@@ -63,6 +65,7 @@ function testDB() {
     });
 }
 testDB();
+console.log("🛢️ DB URL:", process.env.DATABASE_URL);
 app.use(express_1.default.json());
 app.use((0, helmet_1.default)());
 app.use(helmet_1.default.crossOriginResourcePolicy({ policy: "cross-origin" }));
@@ -74,11 +77,11 @@ app.get("/", (req, res) => {
     res.send("This is home route");
 });
 // Routes
-app.use("/users", (0, authMiddleware_1.authMiddleware)(["user", "admin"]), userRoutes_1.default);
+app.use("/users", (0, authMiddleware_1.authMiddleware)(["admin"]), userRoutes_1.default);
 app.use("/contacts", contactRoutes_1.default);
 app.use("/admin", adminRoutes_1.default);
 app.use("/email", emailRoutes_1.default);
-app.use("/chat", (0, authMiddleware_1.authMiddleware)(["user", "accounts", "staff", "admin"], true), (0, chatRoutes_1.default)(io));
+app.use("/chat", (0, authMiddleware_1.authMiddleware)(["accounts", "staff", "admin"], true), (0, chatRoutes_1.default)(io));
 app.use("/blogs", blogRoutes_1.default);
 app.use("/client-expenses", clientExpenseRoutes_1.default);
 app.use("/operational-expenses", operationalExpenseRoutes_1.default);
@@ -98,7 +101,7 @@ app.use("/settings", appSettingsRoutes_1.default);
 app.use("/clients", clientRoutes_1.default);
 app.use("/invoices", invoiceRoutes_1.default);
 app.use("/stickynotes", stickyNotesRoutes_1.default);
-httpServer.listen(Number(process.env.PORT) || 3001, "0.0.0.0", () => {
+httpServer.listen(Number(process.env.PORT) || 3002, "0.0.0.0", () => {
     console.log(`Server + WebSocket running on port ${process.env.PORT || 3001}`);
 });
 // Graceful shutdown

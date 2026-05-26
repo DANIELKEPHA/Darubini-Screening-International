@@ -4356,6 +4356,7 @@ export const {
     useUpdateAdminSettingsMutation,
     useUpdateAccountsSettingsMutation,
     useUpdateStaffSettingsMutation,
+    useUpdateUserSettingsMutation,
     useGetUserQuery,
     useCreateAdminMutation,
     useUpdateAdminMutation,

@@ -31,27 +31,35 @@ const StaffSettings = () => {
 
             const session = await fetchAuthSession();
             const idToken = session.tokens?.idToken?.toString();
-
             if (!idToken) throw new Error("No authentication token found");
 
             let response: Response;
 
             if (data.profilePicture instanceof File) {
                 const formData = new FormData();
-
                 formData.append("name", data.name || "");
                 formData.append("email", data.email || "");
                 formData.append("phoneNumber", data.phoneNumber || "");
                 formData.append("idNumber", data.idNumber || "");
+                formData.append("supervisor", data.supervisor || "");
+                formData.append("bio", data.bio || "");
+                formData.append("dateOfHire", data.dateOfHire || "");
+                formData.append("contractStartDate", data.contractStartDate || "");
+                formData.append("contractEndDate", data.contractEndDat || "");
+                formData.append("contractType", data.contractType || "");
+                formData.append("contractPeriod", data.contractPeriod || "");
+                formData.append("department", data.department || "");
+                formData.append("dateOfBirth", data.dateOfBirth || "");
+                formData.append("gender", data.gender || "");
+                formData.append("nationality", data.nationality || "");
+                formData.append("language", data.language || "");
                 formData.append("profilePicture", data.profilePicture);
 
                 response = await fetch(
                     `${process.env.NEXT_PUBLIC_API_BASE_URL}/staff/${authUser.cognitoInfo.userId}`,
                     {
                         method: "PUT",
-                        headers: {
-                            Authorization: `Bearer ${idToken}`,
-                        },
+                        headers: { Authorization: `Bearer ${idToken}` },
                         body: formData,
                     }
                 );
@@ -75,7 +83,12 @@ const StaffSettings = () => {
             }
 
             toast.success("Profile updated successfully!");
+
+            // Option 1: Quick fix (same as Admin)
             window.location.reload();
+
+            // Option 2: Better UX (Recommended) - Refetch without reload
+            // await refetch();   // if you destructure refetch from the query
 
         } catch (error: any) {
             console.error("Update error:", error);

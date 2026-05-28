@@ -269,6 +269,8 @@ export const api = createApi({
                 supervisor?: string;
                 bio?: string;
                 dateOfHire?: string | Date;
+                contractStartDate?: string | Date;
+                contractEndDate?: string | Date;
                 contractType?: string;
                 contractPeriod?: string;
                 department?: string;
@@ -404,6 +406,8 @@ export const api = createApi({
                 supervisor?: string;
                 bio?: string;
                 dateOfHire?: string | Date;
+                contractStartDate?: string | Date;
+                contractEndDate?: string | Date;
                 contractType?: string;
                 contractPeriod?: string;
                 department?: string;
@@ -597,6 +601,8 @@ export const api = createApi({
                 supervisor?: string;
                 bio?: string;
                 dateOfHire?: string | Date;
+                contractStartDate?: string | Date;
+                contractEndDate?: string | Date;
                 contractType?: string;
                 contractPeriod?: string;
                 department?: string;

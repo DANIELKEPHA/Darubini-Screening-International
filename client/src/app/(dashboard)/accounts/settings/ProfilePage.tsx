@@ -20,31 +20,56 @@ export const ProfilePage = ({ authUser }: ProfilePageProps) => {
 
     // Contract Progress Calculation
     const contractProgress = React.useMemo(() => {
-        if (!user.dateOfHire || !user.contractPeriod) return null;
+        if (!user.contractStartDate || !user.contractEndDate) return null;
 
-        const hireDate = new Date(user.dateOfHire);
-        const totalMonths = parseInt(user.contractPeriod) || 0;
+        const startDate = new Date(user.contractStartDate);
+        const endDate = new Date(user.contractEndDate);
         const today = new Date();
 
-        let monthsElapsed =
-            (today.getFullYear() - hireDate.getFullYear()) * 12 +
-            (today.getMonth() - hireDate.getMonth());
+        // Total contract duration in milliseconds
+        const totalDuration = endDate.getTime() - startDate.getTime();
 
-        if (today.getDate() < hireDate.getDate()) monthsElapsed--;
+        // Time already used
+        const elapsedDuration = today.getTime() - startDate.getTime();
 
-        const monthsRemaining = Math.max(0, totalMonths - monthsElapsed);
-        const progressPercentage = totalMonths > 0
-            ? Math.min(Math.round((monthsElapsed / totalMonths) * 100), 100)
-            : 0;
+        // Remaining time
+        const remainingDuration = endDate.getTime() - today.getTime();
+
+        // Convert milliseconds to months (approximate)
+        const totalMonths = Math.max(
+            1,
+            Math.round(totalDuration / (1000 * 60 * 60 * 24 * 30))
+        );
+
+        const monthsElapsed = Math.max(
+            0,
+            Math.round(elapsedDuration / (1000 * 60 * 60 * 24 * 30))
+        );
+
+        const monthsRemaining = Math.max(
+            0,
+            Math.round(remainingDuration / (1000 * 60 * 60 * 24 * 30))
+        );
+
+        const progressPercentage =
+            totalDuration > 0
+                ? Math.min(
+                    Math.max(
+                        Math.round((elapsedDuration / totalDuration) * 100),
+                        0
+                    ),
+                    100
+                )
+                : 0;
 
         return {
             totalMonths,
-            monthsElapsed: Math.max(0, monthsElapsed),
+            monthsElapsed,
             monthsRemaining,
             progressPercentage,
-            isExpired: monthsRemaining === 0 && monthsElapsed >= totalMonths,
+            isExpired: today > endDate,
         };
-    }, [user.dateOfHire, user.contractPeriod]);
+    }, [user.contractStartDate, user.contractEndDate]);
 
     // Print Name Tag Function
     const printNameTag = () => {
@@ -186,6 +211,20 @@ export const ProfilePage = ({ authUser }: ProfilePageProps) => {
                                                 icon={<Calendar />}
                                                 label="Date of Hire"
                                                 value={new Date(user.dateOfHire).toLocaleDateString()}
+                                            />
+                                        )}
+                                        {user.contractStartDate && (
+                                            <Info
+                                                icon={<Calendar />}
+                                                label="Contract Start Date"
+                                                value={new Date(user.contractStartDate).toLocaleDateString()}
+                                            />
+                                        )}
+                                        {user.contractEndDate && (
+                                            <Info
+                                                icon={<Calendar />}
+                                                label="Contract End Date"
+                                                value={new Date(user.contractEndDate).toLocaleDateString()}
                                             />
                                         )}
                                         {user.contractType && (

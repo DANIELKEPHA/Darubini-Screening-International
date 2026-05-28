@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { settingsSchema, SettingsFormData } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
-    User, Mail, Phone, Save, Camera, AtSign, Smartphone, IdCard,
-    Calendar, Briefcase, Users, Globe, Heart, Award
+    User, Mail, Phone, Save, Camera, AtSign, Smartphone,
+    IdCard, Calendar, Briefcase, Users, Globe, Heart, Award
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -35,6 +35,8 @@ export const ProfileEditForm = ({ authUser, onSubmit, isLoading }: ProfileEditFo
             supervisor: "",
             bio: "",
             dateOfHire: "",
+            contractStartDate: "",
+            contractEndDate: "",
             contractType: "",
             contractPeriod: "",
             department: "",
@@ -44,6 +46,29 @@ export const ProfileEditForm = ({ authUser, onSubmit, isLoading }: ProfileEditFo
             language: "",
         },
     });
+
+    const { watch, setValue, register } = form;
+
+    // Watch relevant fields for auto-calculation
+    const dateOfHire = watch("dateOfHire");
+    const contractStartDate = watch("contractStartDate");
+    const contractPeriod = watch("contractPeriod");
+    const contractEndDate = watch("contractEndDate");
+
+    // Auto-calculate Contract End Date
+    React.useEffect(() => {
+        if (contractStartDate && contractPeriod) {
+            const months = parseInt(contractPeriod);
+            if (!isNaN(months) && months > 0) {
+                const start = new Date(contractStartDate);
+                const end = new Date(start);
+                end.setMonth(end.getMonth() + months);
+
+                const formattedEnd = end.toISOString().split("T")[0];
+                setValue("contractEndDate", formattedEnd, { shouldValidate: true });
+            }
+        }
+    }, [contractStartDate, contractPeriod, setValue]);
 
     // Load existing data
     React.useEffect(() => {
@@ -57,6 +82,8 @@ export const ProfileEditForm = ({ authUser, onSubmit, isLoading }: ProfileEditFo
                 supervisor: user.supervisor || "",
                 bio: user.bio || "",
                 dateOfHire: user.dateOfHire ? user.dateOfHire.split('T')[0] : "",
+                contractStartDate: user.contractStartDate ? user.contractStartDate.split('T')[0] : "",
+                contractEndDate: user.contractEndDate ? user.contractEndDate.split('T')[0] : "",
                 contractType: user.contractType || "",
                 contractPeriod: user.contractPeriod || "",
                 department: user.department || "",
@@ -94,16 +121,11 @@ export const ProfileEditForm = ({ authUser, onSubmit, isLoading }: ProfileEditFo
             <Card className="bg-white border border-gray-200 shadow-md rounded-lg overflow-hidden">
                 <CardHeader className="bg-gray-50 border-b border-gray-200 p-6">
                     <div className="flex flex-col sm:flex-row items-center gap-6">
+                        {/* Profile Picture */}
                         <div className="relative flex-shrink-0">
                             <div className="w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-300 bg-gray-100">
                                 {previewUrl ? (
-                                    <Image
-                                        src={previewUrl}
-                                        alt="Profile Preview"
-                                        width={96}
-                                        height={96}
-                                        className="object-cover w-full h-full"
-                                    />
+                                    <Image src={previewUrl} alt="Profile Preview" width={96} height={96} className="object-cover w-full h-full" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
                                         <User className="w-12 h-12 text-gray-400" />
@@ -112,12 +134,7 @@ export const ProfileEditForm = ({ authUser, onSubmit, isLoading }: ProfileEditFo
                             </div>
                             <label className="absolute -bottom-2 -right-2 p-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 transition-colors cursor-pointer">
                                 <Camera className="w-4 h-4 text-gray-600" />
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={handleImageChange}
-                                />
+                                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                             </label>
                         </div>
 
@@ -130,50 +147,26 @@ export const ProfileEditForm = ({ authUser, onSubmit, isLoading }: ProfileEditFo
 
                 <CardContent className="p-6">
                     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+
                         {/* Basic Information */}
                         <div>
                             <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h3>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                                {/* Name, Email, Phone, ID Number - Existing fields */}
-                                {/* ... (keeping your existing fields) */}
                                 <div className="space-y-2">
-                                    <Label className="text-gray-700 text-sm font-medium flex items-center gap-2">
-                                        <User className="w-4 h-4 text-gray-500" /> Full Name
-                                    </Label>
-                                    <div className="relative">
-                                        <Input {...form.register("name")} className="h-10 pl-9" placeholder="Enter your full name" />
-                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    </div>
+                                    <Label>Full Name</Label>
+                                    <Input {...register("name")} placeholder="Enter your full name" />
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label className="text-gray-700 text-sm font-medium flex items-center gap-2">
-                                        <AtSign className="w-4 h-4 text-gray-500" /> Email Address
-                                    </Label>
-                                    <div className="relative">
-                                        <Input {...form.register("email")} type="email" className="h-10 pl-9" />
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    </div>
+                                    <Label>Email Address</Label>
+                                    <Input {...register("email")} type="email" />
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label className="text-gray-700 text-sm font-medium flex items-center gap-2">
-                                        <Smartphone className="w-4 h-4 text-gray-500" /> Phone Number
-                                    </Label>
-                                    <div className="relative">
-                                        <Input {...form.register("phoneNumber")} className="h-10 pl-9" />
-                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    </div>
+                                    <Label>Phone Number</Label>
+                                    <Input {...register("phoneNumber")} />
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label className="text-gray-700 text-sm font-medium flex items-center gap-2">
-                                        <IdCard className="w-4 h-4 text-gray-500" /> ID Number
-                                    </Label>
-                                    <div className="relative">
-                                        <Input {...form.register("idNumber")} className="h-10 pl-9" />
-                                        <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    </div>
+                                    <Label>ID Number</Label>
+                                    <Input {...register("idNumber")} />
                                 </div>
                             </div>
                         </div>
@@ -186,29 +179,65 @@ export const ProfileEditForm = ({ authUser, onSubmit, isLoading }: ProfileEditFo
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <Label>Department</Label>
-                                    <Input {...form.register("department")} placeholder="e.g. Operations, Sales, HR" />
+                                    <Input {...register("department")} placeholder="e.g. Operations, Sales, HR" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Supervisor</Label>
-                                    <Input {...form.register("supervisor")} placeholder="Supervisor Name" />
+                                    <Input {...register("supervisor")} placeholder="Supervisor Name" />
                                 </div>
+
                                 <div className="space-y-2">
                                     <Label>Date of Hire</Label>
-                                    <Input type="date" {...form.register("dateOfHire")} />
+                                    <Input
+                                        type="date"
+                                        {...register("dateOfHire")}
+                                        max={new Date().toISOString().split("T")[0]}
+                                    />
                                 </div>
+
+                                <div className="space-y-2">
+                                    <Label>Contract Start Date</Label>
+                                    <Input
+                                        type="date"
+                                        {...register("contractStartDate")}
+                                        min={dateOfHire || undefined}
+                                    />
+                                    {dateOfHire && contractStartDate && contractStartDate < dateOfHire && (
+                                        <p className="text-xs text-red-600 mt-1">
+                                            Contract start date cannot be before date of hire
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Contract Duration (Months)</Label>
+                                    <Input
+                                        type="number"
+                                        {...register("contractPeriod")}
+                                        placeholder="e.g. 12"
+                                        min="1"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Contract End Date <span className="text-gray-500 text-xs">(Auto-calculated)</span></Label>
+                                    <Input
+                                        type="date"
+                                        {...register("contractEndDate")}
+                                        readOnly
+                                        className="bg-gray-50 cursor-not-allowed"
+                                    />
+                                </div>
+
                                 <div className="space-y-2">
                                     <Label>Contract Type</Label>
-                                    <select {...form.register("contractType")} className="h-10 w-full border border-gray-300 rounded-md px-3">
+                                    <select {...register("contractType")} className="h-10 w-full border border-gray-300 rounded-md px-3">
                                         <option value="">Select Contract Type</option>
                                         <option value="Full-time">Full-time</option>
                                         <option value="Part-time">Part-time</option>
-                                        <option value="Contract">Contract</option>
+                                        <option value="Contractual">Contractual</option>
                                         <option value="Permanent">Permanent</option>
                                     </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Contract Period</Label>
-                                    <Input {...form.register("contractPeriod")} placeholder="e.g. 12 months, Permanent" />
                                 </div>
                             </div>
                         </div>
@@ -221,11 +250,11 @@ export const ProfileEditForm = ({ authUser, onSubmit, isLoading }: ProfileEditFo
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <Label>Date of Birth</Label>
-                                    <Input type="date" {...form.register("dateOfBirth")} />
+                                    <Input type="date" {...register("dateOfBirth")} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Gender</Label>
-                                    <select {...form.register("gender")} className="h-10 w-full border border-gray-300 rounded-md px-3">
+                                    <select {...register("gender")} className="h-10 w-full border border-gray-300 rounded-md px-3">
                                         <option value="">Select Gender</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
@@ -234,21 +263,17 @@ export const ProfileEditForm = ({ authUser, onSubmit, isLoading }: ProfileEditFo
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Nationality</Label>
-                                    <Input {...form.register("nationality")} placeholder="e.g. Kenyan" />
+                                    <Input {...register("nationality")} placeholder="e.g. Kenyan" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Language</Label>
-                                    <Input {...form.register("language")} placeholder="e.g. English, Swahili" />
+                                    <Input {...register("language")} placeholder="e.g. English, Swahili" />
                                 </div>
                             </div>
 
                             <div className="space-y-2 mt-5">
                                 <Label>Bio / About</Label>
-                                <Textarea
-                                    {...form.register("bio")}
-                                    placeholder="Write a short bio..."
-                                    rows={4}
-                                />
+                                <Textarea {...register("bio")} placeholder="Write a short bio..." rows={4} />
                             </div>
                         </div>
 

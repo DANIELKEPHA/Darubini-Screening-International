@@ -56,6 +56,8 @@ export const settingsSchema = z.object({
     bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
 
     dateOfHire: z.string().optional(),
+    contractStartDate: z.string().optional(),
+    contractEndDate: z.string().optional(),
     contractType: z.enum(["Full-time", "Part-time", "Contractual", "Permanent", ""]).optional(),
     contractPeriod: z.string().optional(),
     department: z.string().optional(),

@@ -13,6 +13,7 @@ exports.updateAdmin = exports.createAdmin = exports.getAdmin = void 0;
 const client_1 = require("@prisma/client");
 const s3Client_1 = require("../middleware/s3Client");
 const prisma = new client_1.PrismaClient();
+// ====================== GET ADMIN ======================
 const getAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
@@ -37,10 +38,13 @@ const getAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 role: true,
                 createdAt: true,
                 updatedAt: true,
-                // === NEW FIELDS ===
+                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: true,
+                contractEndDate: true,
                 contractType: true,
                 contractPeriod: true,
                 department: true,
@@ -62,13 +66,14 @@ const getAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getAdmin = getAdmin;
+// ====================== CREATE ADMIN ======================
 const createAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
             res.status(401).json({ message: "Unauthorized: No user data" });
             return;
         }
-        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
+        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractStartDate, contractEndDate, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
         const file = req.file;
         const cognitoId = req.user.role === "admin" && req.body.cognitoId
             ? req.body.cognitoId
@@ -104,10 +109,12 @@ const createAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 phoneNumber,
                 idNumber,
                 profilePicture: profilePictureUrl,
-                // New Fields
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
+                // === NEW FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
+                contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
                 contractType,
                 contractPeriod,
                 department,
@@ -124,6 +131,7 @@ const createAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.createAdmin = createAdmin;
+// ====================== UPDATE ADMIN ======================
 const updateAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log("File received:", !!req.file);
@@ -133,7 +141,7 @@ const updateAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         const { cognitoId } = req.params;
-        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
+        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractStartDate, contractEndDate, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
         const file = req.file;
         // Ownership check
         if (cognitoId !== req.user.id && req.user.role !== "admin") {
@@ -163,7 +171,9 @@ const updateAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 phoneNumber,
                 idNumber,
                 supervisor,
-                bio, dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined, contractType,
+                bio, dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined, 
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined, contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined, contractType,
                 contractPeriod,
                 department, dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined, gender,
                 nationality,

@@ -8,6 +8,7 @@ interface AuthRequest extends Request {
     user?: { id: string; role: "admin" | "accounts" | "staff" };
 }
 
+// ====================== GET ADMIN ======================
 export const getAdmin = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -36,13 +37,19 @@ export const getAdmin = async (req: AuthRequest, res: Response): Promise<void> =
                 createdAt: true,
                 updatedAt: true,
 
-                // === NEW FIELDS ===
+                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
+
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: true,
+                contractEndDate: true,
+
                 contractType: true,
                 contractPeriod: true,
                 department: true,
+
                 dateOfBirth: true,
                 gender: true,
                 nationality: true,
@@ -60,6 +67,7 @@ export const getAdmin = async (req: AuthRequest, res: Response): Promise<void> =
     }
 };
 
+// ====================== CREATE ADMIN ======================
 export const createAdmin = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -75,6 +83,8 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
             supervisor,
             bio,
             dateOfHire,
+            contractStartDate,
+            contractEndDate,
             contractType,
             contractPeriod,
             department,
@@ -127,10 +137,14 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
                 idNumber,
                 profilePicture: profilePictureUrl,
 
-                // New Fields
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
+
+                // === NEW FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
+                contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
+
                 contractType,
                 contractPeriod,
                 department,
@@ -147,6 +161,7 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
     }
 };
 
+// ====================== UPDATE ADMIN ======================
 export const updateAdmin = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         console.log("File received:", !!req.file);
@@ -167,6 +182,8 @@ export const updateAdmin = async (req: AuthRequest, res: Response): Promise<void
             supervisor,
             bio,
             dateOfHire,
+            contractStartDate,
+            contractEndDate,
             contractType,
             contractPeriod,
             department,
@@ -213,6 +230,11 @@ export const updateAdmin = async (req: AuthRequest, res: Response): Promise<void
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
+
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
+                contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
+
                 contractType,
                 contractPeriod,
                 department,

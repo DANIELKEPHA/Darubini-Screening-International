@@ -20,6 +20,8 @@ model Admin {
   supervisor        String?
   bio               String?
   dateOfHire        DateTime?
+  contractStartDate   DateTime?
+  contractEndDate     DateTime?
   contractType      String?
   contractPeriod    String?
   department        String?
@@ -106,6 +108,8 @@ model Accounts {
   supervisor          String?
   bio                 String?
   dateOfHire          DateTime?
+  contractStartDate   DateTime?
+  contractEndDate     DateTime?
   contractType        String?
   contractPeriod      String?
   department          String?
@@ -172,11 +176,12 @@ model Staff {
   email               String
   phoneNumber         String?
 
-  // Added personal information fields (for consistency)
   idNumber            String?  @unique
   supervisor          String?
   bio                 String?
   dateOfHire          DateTime?
+  contractStartDate   DateTime?
+  contractEndDate     DateTime?
   contractType        String?
   contractPeriod      String?
   department          String?
@@ -188,7 +193,6 @@ model Staff {
 
   role                UserRole @default(STAFF)
 
-  // Relations
   attendanceRecords          Attendance[]                   @relation("StaffAttendanceRecords")
   auditLogs                  AuditLog[]                     @relation("StaffAuditLogs")
   chatRooms                  ChatRoom[]                     @relation("StaffChatRooms")
@@ -218,7 +222,6 @@ model Staff {
   StickyNote                 StickyNote[]
   StickyNoteShare            StickyNoteShare[]
 
-  // Timestamps
   createdAt                  DateTime                       @default(now())
   updatedAt                  DateTime                       @updatedAt
 

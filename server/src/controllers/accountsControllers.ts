@@ -18,7 +18,6 @@ export const getAccounts = async (req: AuthRequest, res: Response): Promise<void
 
         const { cognitoId } = req.params;
 
-        // Authorization: Users can only view their own profile (unless admin)
         if (cognitoId !== req.user.id && req.user.role !== "admin") {
             res.status(403).json({ message: "Access denied: You can only view your own profile" });
             return;
@@ -37,13 +36,20 @@ export const getAccounts = async (req: AuthRequest, res: Response): Promise<void
                 role: true,
                 createdAt: true,
                 updatedAt: true,
-                // Personal Fields
+
+                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
+
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: true,
+                contractEndDate: true,
+
                 contractType: true,
                 contractPeriod: true,
                 department: true,
+
                 dateOfBirth: true,
                 gender: true,
                 nationality: true,
@@ -77,6 +83,8 @@ export const createAccounts = async (req: AuthRequest, res: Response): Promise<v
             supervisor,
             bio,
             dateOfHire,
+            contractStartDate,
+            contractEndDate,
             contractType,
             contractPeriod,
             department,
@@ -87,10 +95,7 @@ export const createAccounts = async (req: AuthRequest, res: Response): Promise<v
         } = req.body;
 
         const file = req.file;
-
-        const cognitoId = req.user.role === "admin" && req.body.cognitoId
-            ? req.body.cognitoId
-            : req.user.id;
+        const cognitoId = req.user.role === "admin" && req.body.cognitoId ? req.body.cognitoId : req.user.id;
 
         if (!cognitoId) {
             res.status(400).json({ message: "Missing cognitoId" });
@@ -128,10 +133,15 @@ export const createAccounts = async (req: AuthRequest, res: Response): Promise<v
                 idNumber,
                 profilePicture: profilePictureUrl,
                 role: "ACCOUNTS",
-                // New Fields
+
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
+
+                // === NEW FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
+                contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
+
                 contractType,
                 contractPeriod,
                 department,
@@ -161,6 +171,7 @@ export const updateAccounts = async (req: AuthRequest, res: Response): Promise<v
         }
 
         const { cognitoId } = req.params;
+
         const {
             name,
             email,
@@ -169,6 +180,8 @@ export const updateAccounts = async (req: AuthRequest, res: Response): Promise<v
             supervisor,
             bio,
             dateOfHire,
+            contractStartDate,
+            contractEndDate,
             contractType,
             contractPeriod,
             department,
@@ -186,13 +199,10 @@ export const updateAccounts = async (req: AuthRequest, res: Response): Promise<v
             return;
         }
 
-        // ID Number uniqueness check (excluding current user)
+        // ID Number uniqueness check
         if (idNumber) {
             const existingId = await prisma.accounts.findFirst({
-                where: {
-                    idNumber,
-                    NOT: { cognitoId },
-                },
+                where: { idNumber, NOT: { cognitoId } },
             });
             if (existingId) {
                 res.status(409).json({ message: "ID Number already in use by another user" });
@@ -216,6 +226,11 @@ export const updateAccounts = async (req: AuthRequest, res: Response): Promise<v
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
+
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
+                contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
+
                 contractType,
                 contractPeriod,
                 department,

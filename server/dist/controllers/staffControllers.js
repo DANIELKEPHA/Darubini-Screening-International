@@ -21,7 +21,6 @@ const getStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             return;
         }
         const { cognitoId } = req.params;
-        // Authorization: Users can only view their own profile (unless admin)
         if (cognitoId !== req.user.id && req.user.role !== "admin") {
             res.status(403).json({ message: "Access denied: You can only view your own profile" });
             return;
@@ -39,10 +38,13 @@ const getStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 role: true,
                 createdAt: true,
                 updatedAt: true,
-                // Personal Fields
+                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: true,
+                contractEndDate: true,
                 contractType: true,
                 contractPeriod: true,
                 department: true,
@@ -71,7 +73,7 @@ const createStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(401).json({ message: "Unauthorized: No user data" });
             return;
         }
-        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
+        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractStartDate, contractEndDate, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
         const file = req.file;
         const cognitoId = req.user.role === "admin" && req.body.cognitoId
             ? req.body.cognitoId
@@ -108,10 +110,12 @@ const createStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 idNumber,
                 profilePicture: profilePictureUrl,
                 role: "STAFF",
-                // New Fields
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
+                // === NEW FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
+                contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
                 contractType,
                 contractPeriod,
                 department,
@@ -140,7 +144,7 @@ const updateStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         const { cognitoId } = req.params;
-        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
+        const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractStartDate, contractEndDate, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
         const file = req.file;
         // Authorization check
         if (cognitoId !== req.user.id && req.user.role !== "admin") {
@@ -172,7 +176,9 @@ const updateStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 phoneNumber,
                 idNumber,
                 supervisor,
-                bio, dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined, contractType,
+                bio, dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined, 
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined, contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined, contractType,
                 contractPeriod,
                 department, dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined, gender,
                 nationality,

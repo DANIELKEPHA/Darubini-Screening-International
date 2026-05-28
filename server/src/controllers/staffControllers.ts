@@ -18,7 +18,6 @@ export const getStaff = async (req: AuthRequest, res: Response): Promise<void> =
 
         const { cognitoId } = req.params;
 
-        // Authorization: Users can only view their own profile (unless admin)
         if (cognitoId !== req.user.id && req.user.role !== "admin") {
             res.status(403).json({ message: "Access denied: You can only view your own profile" });
             return;
@@ -37,13 +36,20 @@ export const getStaff = async (req: AuthRequest, res: Response): Promise<void> =
                 role: true,
                 createdAt: true,
                 updatedAt: true,
-                // Personal Fields
+
+                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
+
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: true,
+                contractEndDate: true,
+
                 contractType: true,
                 contractPeriod: true,
                 department: true,
+
                 dateOfBirth: true,
                 gender: true,
                 nationality: true,
@@ -77,6 +83,8 @@ export const createStaff = async (req: AuthRequest, res: Response): Promise<void
             supervisor,
             bio,
             dateOfHire,
+            contractStartDate,
+            contractEndDate,
             contractType,
             contractPeriod,
             department,
@@ -128,10 +136,15 @@ export const createStaff = async (req: AuthRequest, res: Response): Promise<void
                 idNumber,
                 profilePicture: profilePictureUrl,
                 role: "STAFF",
-                // New Fields
+
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
+
+                // === NEW FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
+                contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
+
                 contractType,
                 contractPeriod,
                 department,
@@ -161,6 +174,7 @@ export const updateStaff = async (req: AuthRequest, res: Response): Promise<void
         }
 
         const { cognitoId } = req.params;
+
         const {
             name,
             email,
@@ -169,6 +183,8 @@ export const updateStaff = async (req: AuthRequest, res: Response): Promise<void
             supervisor,
             bio,
             dateOfHire,
+            contractStartDate,
+            contractEndDate,
             contractType,
             contractPeriod,
             department,
@@ -216,6 +232,11 @@ export const updateStaff = async (req: AuthRequest, res: Response): Promise<void
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
+
+                // === NEW CONTRACT FIELDS ===
+                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
+                contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
+
                 contractType,
                 contractPeriod,
                 department,

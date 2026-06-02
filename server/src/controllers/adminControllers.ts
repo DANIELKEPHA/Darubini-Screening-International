@@ -8,7 +8,6 @@ interface AuthRequest extends Request {
     user?: { id: string; role: "admin" | "accounts" | "staff" };
 }
 
-// ====================== GET ADMIN ======================
 export const getAdmin = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -37,12 +36,10 @@ export const getAdmin = async (req: AuthRequest, res: Response): Promise<void> =
                 createdAt: true,
                 updatedAt: true,
 
-                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
 
-                // === NEW CONTRACT FIELDS ===
                 contractStartDate: true,
                 contractEndDate: true,
 
@@ -67,7 +64,6 @@ export const getAdmin = async (req: AuthRequest, res: Response): Promise<void> =
     }
 };
 
-// ====================== CREATE ADMIN ======================
 export const createAdmin = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -105,14 +101,12 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
             return;
         }
 
-        // Check existing admin
         const existingAdmin = await prisma.admin.findUnique({ where: { cognitoId } });
         if (existingAdmin) {
             res.status(409).json({ message: "Admin already exists" });
             return;
         }
 
-        // ID Number uniqueness
         if (idNumber) {
             const existingId = await prisma.admin.findUnique({ where: { idNumber } });
             if (existingId) {
@@ -141,7 +135,6 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
 
-                // === NEW FIELDS ===
                 contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
                 contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
 
@@ -161,7 +154,6 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
     }
 };
 
-// ====================== UPDATE ADMIN ======================
 export const updateAdmin = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         console.log("File received:", !!req.file);
@@ -256,5 +248,107 @@ export const updateAdmin = async (req: AuthRequest, res: Response): Promise<void
         } else {
             res.status(500).json({ message: `Error updating admin: ${error.message}` });
         }
+    }
+};
+
+export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: "Unauthorized: No user data" });
+            return;
+        }
+
+        if (req.user.role !== "admin") {
+            res.status(403).json({ message: "Access denied: Admin only" });
+            return;
+        }
+
+        // Fetch all three types
+        const [admins, accounts, staff] = await Promise.all([
+            prisma.admin.findMany({
+                select: {
+                    id: true,
+                    cognitoId: true,
+                    name: true,
+                    email: true,
+                    phoneNumber: true,
+                    idNumber: true,
+                    role: true,
+                    department: true,
+                    dateOfHire: true,
+                    contractStartDate: true,
+                    contractEndDate: true,
+                    contractType: true,
+                    contractPeriod: true,
+                    dateOfBirth: true,
+                    gender: true,
+                    nationality: true,
+                    profilePicture: true,
+                    createdAt: true,
+                }
+            }),
+            prisma.accounts.findMany({
+                select: {
+                    id: true,
+                    cognitoId: true,
+                    name: true,
+                    email: true,
+                    phoneNumber: true,
+                    idNumber: true,
+                    role: true,
+                    department: true,
+                    dateOfHire: true,
+                    contractStartDate: true,
+                    contractEndDate: true,
+                    contractType: true,
+                    contractPeriod: true,
+                    dateOfBirth: true,
+                    gender: true,
+                    nationality: true,
+                    profilePicture: true,
+                    createdAt: true,
+                }
+            }),
+            prisma.staff.findMany({
+                select: {
+                    id: true,
+                    cognitoId: true,
+                    name: true,
+                    email: true,
+                    phoneNumber: true,
+                    idNumber: true,
+                    role: true,
+                    department: true,
+                    dateOfHire: true,
+                    contractStartDate: true,
+                    contractEndDate: true,
+                    contractType: true,
+                    contractPeriod: true,
+                    dateOfBirth: true,
+                    gender: true,
+                    nationality: true,
+                    profilePicture: true,
+                    createdAt: true,
+                }
+            })
+        ]);
+
+        const allUsers = [
+            ...admins.map(u => ({ ...u, userType: "ADMIN" as const })),
+            ...accounts.map(u => ({ ...u, userType: "ACCOUNTS" as const })),
+            ...staff.map(u => ({ ...u, userType: "STAFF" as const })),
+        ].sort((a, b) => a.name.localeCompare(b.name));
+
+        res.json({
+            success: true,
+            count: allUsers.length,
+            data: allUsers
+        });
+
+    } catch (error: any) {
+        console.error("Error in getAllUsers:", error);
+        res.status(500).json({
+            message: `Error fetching all users: ${error.message}`
+        });
     }
 };

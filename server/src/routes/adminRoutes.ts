@@ -1,11 +1,12 @@
 import express from "express";
-import { getAdmin, updateAdmin, createAdmin } from "../controllers/adminControllers";
+import {getAdmin, updateAdmin, createAdmin, getAllUsers} from "../controllers/adminControllers";
 import { authMiddleware } from "../middleware/authMiddleware";
 import {upload} from "../middleware/upload";
 
 const router = express.Router();
 
-// GET - No file upload needed
+router.get("/all-users", authMiddleware(["admin"]), getAllUsers);
+
 router.get("/:cognitoId", authMiddleware(["admin"]), getAdmin);
 
 router.post(

@@ -8,7 +8,6 @@ interface AuthRequest extends Request {
     user?: { id: string; role: "admin" | "accounts" | "staff" };
 }
 
-// ====================== GET ACCOUNTS ======================
 export const getAccounts = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -37,12 +36,10 @@ export const getAccounts = async (req: AuthRequest, res: Response): Promise<void
                 createdAt: true,
                 updatedAt: true,
 
-                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
 
-                // === NEW CONTRACT FIELDS ===
                 contractStartDate: true,
                 contractEndDate: true,
 
@@ -67,7 +64,6 @@ export const getAccounts = async (req: AuthRequest, res: Response): Promise<void
     }
 };
 
-// ====================== CREATE ACCOUNTS ======================
 export const createAccounts = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -162,7 +158,6 @@ export const createAccounts = async (req: AuthRequest, res: Response): Promise<v
     }
 };
 
-// ====================== UPDATE ACCOUNTS ======================
 export const updateAccounts = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {

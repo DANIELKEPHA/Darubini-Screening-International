@@ -13,7 +13,6 @@ exports.updateStaff = exports.createStaff = exports.getStaff = void 0;
 const client_1 = require("@prisma/client");
 const s3Client_1 = require("../middleware/s3Client");
 const prisma = new client_1.PrismaClient();
-// ====================== GET STAFF ======================
 const getStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
@@ -38,11 +37,9 @@ const getStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 role: true,
                 createdAt: true,
                 updatedAt: true,
-                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
-                // === NEW CONTRACT FIELDS ===
                 contractStartDate: true,
                 contractEndDate: true,
                 contractType: true,
@@ -66,7 +63,6 @@ const getStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getStaff = getStaff;
-// ====================== CREATE STAFF ======================
 const createStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
@@ -82,13 +78,11 @@ const createStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(400).json({ message: "Missing cognitoId" });
             return;
         }
-        // Check if user already exists
         const existingStaff = yield prisma.staff.findUnique({ where: { cognitoId } });
         if (existingStaff) {
             res.status(409).json({ message: "Staff user already exists" });
             return;
         }
-        // ID Number uniqueness check
         if (idNumber) {
             const existingId = yield prisma.staff.findUnique({ where: { idNumber } });
             if (existingId) {
@@ -113,7 +107,6 @@ const createStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
-                // === NEW FIELDS ===
                 contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
                 contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
                 contractType,
@@ -136,7 +129,6 @@ const createStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.createStaff = createStaff;
-// ====================== UPDATE STAFF ======================
 const updateStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
@@ -146,12 +138,10 @@ const updateStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const { cognitoId } = req.params;
         const { name, email, phoneNumber, idNumber, supervisor, bio, dateOfHire, contractStartDate, contractEndDate, contractType, contractPeriod, department, dateOfBirth, gender, nationality, language, } = req.body;
         const file = req.file;
-        // Authorization check
         if (cognitoId !== req.user.id && req.user.role !== "admin") {
             res.status(403).json({ message: "Access denied: You can only update your own profile" });
             return;
         }
-        // ID Number uniqueness check (excluding current user)
         if (idNumber) {
             const existingId = yield prisma.staff.findFirst({
                 where: {
@@ -176,9 +166,7 @@ const updateStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 phoneNumber,
                 idNumber,
                 supervisor,
-                bio, dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined, 
-                // === NEW CONTRACT FIELDS ===
-                contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined, contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined, contractType,
+                bio, dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined, contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined, contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined, contractType,
                 contractPeriod,
                 department, dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined, gender,
                 nationality,

@@ -5,14 +5,12 @@ import { upload } from "../middleware/upload";
 
 const router = express.Router();
 
-// GET - View Accounts profile
 router.get(
     "/:cognitoId",
     authMiddleware(["admin", "accounts"]),
     getAccounts
 );
 
-// POST - Create Accounts (with profile picture)
 router.post(
     "/",
     authMiddleware(["admin", "accounts"]),
@@ -20,7 +18,6 @@ router.post(
     createAccounts
 );
 
-// PUT - Update Accounts (with profile picture)
 router.put(
     "/:cognitoId",
     authMiddleware(["admin", "accounts"]),

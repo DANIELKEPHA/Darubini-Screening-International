@@ -8,7 +8,6 @@ interface AuthRequest extends Request {
     user?: { id: string; role: "admin" | "accounts" | "staff" };
 }
 
-// ====================== GET STAFF ======================
 export const getStaff = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -37,12 +36,10 @@ export const getStaff = async (req: AuthRequest, res: Response): Promise<void> =
                 createdAt: true,
                 updatedAt: true,
 
-                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
 
-                // === NEW CONTRACT FIELDS ===
                 contractStartDate: true,
                 contractEndDate: true,
 
@@ -67,7 +64,6 @@ export const getStaff = async (req: AuthRequest, res: Response): Promise<void> =
     }
 };
 
-// ====================== CREATE STAFF ======================
 export const createStaff = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -105,14 +101,12 @@ export const createStaff = async (req: AuthRequest, res: Response): Promise<void
             return;
         }
 
-        // Check if user already exists
         const existingStaff = await prisma.staff.findUnique({ where: { cognitoId } });
         if (existingStaff) {
             res.status(409).json({ message: "Staff user already exists" });
             return;
         }
 
-        // ID Number uniqueness check
         if (idNumber) {
             const existingId = await prisma.staff.findUnique({ where: { idNumber } });
             if (existingId) {
@@ -141,7 +135,6 @@ export const createStaff = async (req: AuthRequest, res: Response): Promise<void
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
 
-                // === NEW FIELDS ===
                 contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
                 contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
 
@@ -165,7 +158,6 @@ export const createStaff = async (req: AuthRequest, res: Response): Promise<void
     }
 };
 
-// ====================== UPDATE STAFF ======================
 export const updateStaff = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -196,13 +188,11 @@ export const updateStaff = async (req: AuthRequest, res: Response): Promise<void
 
         const file = req.file;
 
-        // Authorization check
         if (cognitoId !== req.user.id && req.user.role !== "admin") {
             res.status(403).json({ message: "Access denied: You can only update your own profile" });
             return;
         }
 
-        // ID Number uniqueness check (excluding current user)
         if (idNumber) {
             const existingId = await prisma.staff.findFirst({
                 where: {
@@ -233,7 +223,6 @@ export const updateStaff = async (req: AuthRequest, res: Response): Promise<void
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
 
-                // === NEW CONTRACT FIELDS ===
                 contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
                 contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
 

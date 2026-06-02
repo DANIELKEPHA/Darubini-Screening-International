@@ -13,7 +13,6 @@ exports.updateAccounts = exports.createAccounts = exports.getAccounts = void 0;
 const client_1 = require("@prisma/client");
 const s3Client_1 = require("../middleware/s3Client");
 const prisma = new client_1.PrismaClient();
-// ====================== GET ACCOUNTS ======================
 const getAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
@@ -38,11 +37,9 @@ const getAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 role: true,
                 createdAt: true,
                 updatedAt: true,
-                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
-                // === NEW CONTRACT FIELDS ===
                 contractStartDate: true,
                 contractEndDate: true,
                 contractType: true,
@@ -66,7 +63,6 @@ const getAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.getAccounts = getAccounts;
-// ====================== CREATE ACCOUNTS ======================
 const createAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
@@ -134,7 +130,6 @@ const createAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.createAccounts = createAccounts;
-// ====================== UPDATE ACCOUNTS ======================
 const updateAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {

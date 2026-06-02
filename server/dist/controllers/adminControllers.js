@@ -9,11 +9,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateAdmin = exports.createAdmin = exports.getAdmin = void 0;
+exports.getAllUsers = exports.updateAdmin = exports.createAdmin = exports.getAdmin = void 0;
 const client_1 = require("@prisma/client");
 const s3Client_1 = require("../middleware/s3Client");
 const prisma = new client_1.PrismaClient();
-// ====================== GET ADMIN ======================
 const getAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
@@ -38,11 +37,9 @@ const getAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 role: true,
                 createdAt: true,
                 updatedAt: true,
-                // Personal & Employment Fields
                 supervisor: true,
                 bio: true,
                 dateOfHire: true,
-                // === NEW CONTRACT FIELDS ===
                 contractStartDate: true,
                 contractEndDate: true,
                 contractType: true,
@@ -66,7 +63,6 @@ const getAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getAdmin = getAdmin;
-// ====================== CREATE ADMIN ======================
 const createAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
@@ -82,13 +78,11 @@ const createAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(400).json({ message: "Missing cognitoId" });
             return;
         }
-        // Check existing admin
         const existingAdmin = yield prisma.admin.findUnique({ where: { cognitoId } });
         if (existingAdmin) {
             res.status(409).json({ message: "Admin already exists" });
             return;
         }
-        // ID Number uniqueness
         if (idNumber) {
             const existingId = yield prisma.admin.findUnique({ where: { idNumber } });
             if (existingId) {
@@ -112,7 +106,6 @@ const createAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 supervisor,
                 bio,
                 dateOfHire: dateOfHire ? new Date(dateOfHire) : undefined,
-                // === NEW FIELDS ===
                 contractStartDate: contractStartDate ? new Date(contractStartDate) : undefined,
                 contractEndDate: contractEndDate ? new Date(contractEndDate) : undefined,
                 contractType,
@@ -131,7 +124,6 @@ const createAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.createAdmin = createAdmin;
-// ====================== UPDATE ADMIN ======================
 const updateAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log("File received:", !!req.file);
@@ -194,3 +186,101 @@ const updateAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.updateAdmin = updateAdmin;
+const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: "Unauthorized: No user data" });
+            return;
+        }
+        if (req.user.role !== "admin") {
+            res.status(403).json({ message: "Access denied: Admin only" });
+            return;
+        }
+        // Fetch all three types
+        const [admins, accounts, staff] = yield Promise.all([
+            prisma.admin.findMany({
+                select: {
+                    id: true,
+                    cognitoId: true,
+                    name: true,
+                    email: true,
+                    phoneNumber: true,
+                    idNumber: true,
+                    role: true,
+                    department: true,
+                    dateOfHire: true,
+                    contractStartDate: true,
+                    contractEndDate: true,
+                    contractType: true,
+                    contractPeriod: true,
+                    dateOfBirth: true,
+                    gender: true,
+                    nationality: true,
+                    profilePicture: true,
+                    createdAt: true,
+                }
+            }),
+            prisma.accounts.findMany({
+                select: {
+                    id: true,
+                    cognitoId: true,
+                    name: true,
+                    email: true,
+                    phoneNumber: true,
+                    idNumber: true,
+                    role: true,
+                    department: true,
+                    dateOfHire: true,
+                    contractStartDate: true,
+                    contractEndDate: true,
+                    contractType: true,
+                    contractPeriod: true,
+                    dateOfBirth: true,
+                    gender: true,
+                    nationality: true,
+                    profilePicture: true,
+                    createdAt: true,
+                }
+            }),
+            prisma.staff.findMany({
+                select: {
+                    id: true,
+                    cognitoId: true,
+                    name: true,
+                    email: true,
+                    phoneNumber: true,
+                    idNumber: true,
+                    role: true,
+                    department: true,
+                    dateOfHire: true,
+                    contractStartDate: true,
+                    contractEndDate: true,
+                    contractType: true,
+                    contractPeriod: true,
+                    dateOfBirth: true,
+                    gender: true,
+                    nationality: true,
+                    profilePicture: true,
+                    createdAt: true,
+                }
+            })
+        ]);
+        const allUsers = [
+            ...admins.map(u => (Object.assign(Object.assign({}, u), { userType: "ADMIN" }))),
+            ...accounts.map(u => (Object.assign(Object.assign({}, u), { userType: "ACCOUNTS" }))),
+            ...staff.map(u => (Object.assign(Object.assign({}, u), { userType: "STAFF" }))),
+        ].sort((a, b) => a.name.localeCompare(b.name));
+        res.json({
+            success: true,
+            count: allUsers.length,
+            data: allUsers
+        });
+    }
+    catch (error) {
+        console.error("Error in getAllUsers:", error);
+        res.status(500).json({
+            message: `Error fetching all users: ${error.message}`
+        });
+    }
+});
+exports.getAllUsers = getAllUsers;

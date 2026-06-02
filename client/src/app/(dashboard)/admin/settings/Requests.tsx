@@ -6,9 +6,7 @@ import { useGetAllUsersQuery } from "@/state";
 
 const Requests = () => {
     const router = useRouter();
-    const { data, isLoading, isError } = useGetAllUsersQuery();
-
-    const users = data || [];
+    const { data: users = [], isLoading, isError } = useGetAllUsersQuery();
 
     const handleViewProfile = (cognitoId: string, userType: string) => {
         router.push(

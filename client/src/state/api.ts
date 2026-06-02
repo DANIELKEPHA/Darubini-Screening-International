@@ -458,19 +458,13 @@ export const api = createApi({
             },
         }),
 
-        getAllUsers: build.query<
-            Array<Accounts | Staff & { userType: "ACCOUNTS" | "STAFF" }>,
-            void
-        >({
+        getAllUsers: build.query<any[], void>({
             query: () => "/admin/all-users",
-            providesTags: [
-                { type: "Accounts", id: "LIST" },
-                { type: "Staff", id: "LIST" },
-            ],
-            async onQueryStarted(_, { queryFulfilled }) {
-                await withToast(queryFulfilled, {
-                    error: "Failed to load users list.",
-                });
+
+            transformResponse: (response: any) => {
+                if (Array.isArray(response)) return response;
+                if (Array.isArray(response?.data)) return response.data;
+                return [];
             },
         }),
 

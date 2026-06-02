@@ -259,6 +259,78 @@ export const api = createApi({
             },
         }),
 
+        getUserByCognitoId: build.query<
+            Accounts | Staff | Admin | User,
+            { cognitoId: string; role: string }
+        >({
+            query: ({ cognitoId, role }) =>
+                `/${role.toLowerCase()}/${cognitoId}`,
+
+            providesTags: (result) =>
+                result
+                    ? [{ type: "User", id: result.cognitoId }]
+                    : [{ type: "User" }],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    error: "Failed to load user details.",
+                });
+            },
+        }),
+
+        updateUser: build.mutation<
+            User,
+            {
+                cognitoId: string;
+                role: "admin" | "staff" | "accounts" | "user";
+                profilePicture?: File | string;
+            } & Partial<User>
+        >({
+            query: ({ cognitoId, role, ...data }) => {
+                // HANDLE FILE UPLOAD
+                if (data.profilePicture instanceof File) {
+                    const formData = new FormData();
+
+                    Object.entries(data).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            if (value instanceof File) {
+                                formData.append(key, value);
+                            } else {
+                                formData.append(key, String(value));
+                            }
+                        }
+                    });
+
+                    return {
+                        url: `/${role}/${cognitoId}`,
+                        method: "PUT",
+                        body: formData,
+                        formData: true,
+                    };
+                }
+
+                // NORMAL JSON UPDATE
+                return {
+                    url: `/${role}/${cognitoId}`,
+                    method: "PUT",
+                    body: data,
+                };
+            },
+
+            invalidatesTags: (result, error, { cognitoId }) => [
+                { type: "User", id: cognitoId },
+            ],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    toast.success("User updated successfully");
+                } catch {
+                    toast.error("Failed to update user");
+                }
+            },
+        }),
+
         createAdmin: build.mutation<
             Admin,
             {
@@ -383,6 +455,22 @@ export const api = createApi({
                     patchResult.undo();
                     toast.error("Failed to update profile.");
                 }
+            },
+        }),
+
+        getAllUsers: build.query<
+            Array<Accounts | Staff & { userType: "ACCOUNTS" | "STAFF" }>,
+            void
+        >({
+            query: () => "/admin/all-users",
+            providesTags: [
+                { type: "Accounts", id: "LIST" },
+                { type: "Staff", id: "LIST" },
+            ],
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    error: "Failed to load users list.",
+                });
             },
         }),
 
@@ -4360,7 +4448,13 @@ export const api = createApi({
 export const {
     useGetAuthUserQuery,
     useUpdateAdminSettingsMutation,
+    useGetUserByCognitoIdQuery,
+    useUpdateUserMutation,
     useUpdateAccountsSettingsMutation,
+    useGetAdminQuery,
+    useGetAccountsQuery,
+    useGetStaffQuery,
+    useGetAllUsersQuery,
     useUpdateStaffSettingsMutation,
     useGetUserQuery,
     useCreateAdminMutation,

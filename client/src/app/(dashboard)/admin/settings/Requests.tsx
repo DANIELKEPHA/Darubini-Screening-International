@@ -8,11 +8,11 @@ const Requests = () => {
     const router = useRouter();
     const { data, isLoading, isError } = useGetAllUsersQuery();
 
-    const users = data?.data || [];
+    const users = data || [];
 
     const handleViewProfile = (cognitoId: string, userType: string) => {
         router.push(
-            `/${userType.toLowerCase()}/settings?cognitoId=${cognitoId}`
+            `/${userType.toLowerCase()}/settings/${cognitoId}`
         );
     };
 

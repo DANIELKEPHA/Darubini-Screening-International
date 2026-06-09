@@ -37,7 +37,7 @@ import {
     AttendanceReportResponse, ClientExpense,
     AttendanceResponse, ClientExpenseFilters, Invoice, InvoiceItem, ClientExpensesResponse, ExpenseStatus, StickyNote,
     StickyNoteInput, DepositResponse, DailyBalanceResponse, LeaveRequest, LeaveDecision, LeaveBalance, PaginationMeta,
-    LeaveLedger, LeaveBalanceResponse,
+    LeaveLedger, LeaveBalanceResponse, LeavePolicy,
 } from "@/state/types";
 import ExpenseType = $Enums.ExpenseType;
 import Decimal from "decimal.js";
@@ -95,6 +95,7 @@ export const api = createApi({
         "Attendance",
         'Leave',
         'LeaveBalance',
+        "LeavePolicy",
         "UserLeaveData",
         'LeaveSummary',
         "AppSettings",
@@ -3612,6 +3613,48 @@ export const api = createApi({
             },
         }),
 
+        createOrUpdateLeavePolicies: build.mutation<
+            {
+                message: string;
+                year: number;
+                policies: LeavePolicy[];
+            },
+            {
+                year: number;
+                policies: {
+                    role: "ADMIN" | "ACCOUNTS" | "STAFF";
+                    annualLeaveDays?: number;
+                    sickLeaveDays?: number;
+                    compassionateDays?: number;
+                    maternityDays?: number;
+                    paternityDays?: number;
+                    emergencyDays?: number;
+                    studyLeaveDays?: number | null;
+                    unpaidLeaveAllowed?: boolean;
+                    workingDaysPerWeek?: number;
+                    includeWeekends?: boolean;
+                    excludeHolidays?: boolean;
+                }[];
+            }
+        >({
+            query: (body) => ({
+                url: "leave-policies",
+                method: "POST",
+                body,
+            }),
+
+            invalidatesTags: ["LeavePolicy"],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Saving leave policies...",
+                    success: "Leave policies saved successfully",
+                    error: (err: any) =>
+                        err?.data?.message || "Failed to save leave policies",
+                });
+            },
+        }),
+
         getUserLeaveData: build.query<
             {
                 user: {
@@ -3813,23 +3856,17 @@ export const api = createApi({
         }),
 
         getUserLeaveBalance: build.query<
-            LeaveBalance,
+            any,
             { cognitoId: string }
         >({
             query: ({ cognitoId }) =>
-                `leaves/user/${cognitoId}`,
+                `leaves/user/${cognitoId}/balance`,
+
+            transformResponse: (res: any) => res.data,
 
             providesTags: (result, error, arg) => [
                 { type: "LeaveBalance", id: arg.cognitoId }
             ],
-
-            async onQueryStarted(_, { queryFulfilled }) {
-                try {
-                    await queryFulfilled;
-                } catch (error) {
-                    console.error("Failed to load user balance", error);
-                }
-            },
         }),
 
         approveLeaveRequest: build.mutation<
@@ -4258,7 +4295,7 @@ export const api = createApi({
             Partial<Invoice> & { items: InvoiceItem[] }
         >({
             query: (body) => ({
-                url: "invoices", // or "/api/invoices" if needed
+                url: "invoices",
                 method: "POST",
                 body,
                 headers: { "Content-Type": "application/json" },
@@ -4815,6 +4852,7 @@ export const {
     useGenerateAttendanceReportQuery,
     useValidateQRCodeMutation,
     useGenerateQRCodeMutation,
+    useCreateOrUpdateLeavePoliciesMutation,
     useGetUserLeaveDataQuery,
     useCreateLeaveRequestMutation,
     useGetMyLeaveRequestsQuery,

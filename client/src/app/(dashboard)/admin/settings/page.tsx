@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AnimatePresence, motion, Variants } from "framer-motion";
 import { useGetAuthUserQuery } from "@/state/api";
-import { User, Shield, Bell, Settings as SettingsIcon } from "lucide-react";
+import { User, Shield, Bell, FileText, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ProfileEditForm } from "./ProfileEditForm";
@@ -11,6 +11,7 @@ import { ProfilePage } from "./ProfilePage";
 import { NotificationPage } from "./NotificationPage";
 import { fetchAuthSession } from "aws-amplify/auth";
 import Requests from "@/app/(dashboard)/admin/settings/Requests";
+import LeavePolicies from "@/app/(dashboard)/admin/settings/LeavePolicies";
 
 const ManagerSettings = () => {
     const { data: authUser, isLoading, error } = useGetAuthUserQuery(undefined, {
@@ -119,6 +120,7 @@ const ManagerSettings = () => {
         { id: "overview", label: "Overview", icon: User },
         { id: "profile", label: "Edit Profile", icon: SettingsIcon },
         { id: "requests", label: "Requests", icon: Shield },
+        {id: "policies", label: "Policies", icon: FileText },
         { id: "notifications", label: "Notifications", icon: Bell },
     ];
 
@@ -188,6 +190,7 @@ const ManagerSettings = () => {
                                     />
                                 )}
                                 {activeTab === "requests" && <Requests />}
+                                {activeTab === "policies" && <LeavePolicies />}
                                 {activeTab === "notifications" && <NotificationPage />}
                             </AnimatePresence>
                         </motion.div>

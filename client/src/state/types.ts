@@ -266,6 +266,33 @@ export interface LeaveDecision {
     metadata?: LeaveDecisionMetadata;
 }
 
+export interface LeavePolicy {
+    id: number;
+    year: number;
+    role: "ADMIN" | "ACCOUNTS" | "STAFF";
+
+    annualLeaveDays: number;
+    sickLeaveDays: number;
+    compassionateDays: number;
+    maternityDays: number;
+    paternityDays: number;
+    emergencyDays: number;
+
+    studyLeaveDays: number | null;
+    unpaidLeaveAllowed: boolean;
+
+    accrualType: "ANNUAL" | "MONTHLY" | "DAILY" | string;
+    carryForwardType: "NONE" | "PARTIAL" | "FULL" | string;
+    carryForwardMaxDays: number | null;
+
+    workingDaysPerWeek: number;
+    excludeHolidays: boolean;
+    includeWeekends: boolean;
+
+    createdAt: string | Date;
+    updatedAt: string | Date;
+}
+
 export interface LeaveDecisionMetadata {
     balanceBefore?: number;
     balanceAfter?: number;

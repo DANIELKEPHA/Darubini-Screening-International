@@ -19,7 +19,7 @@ const defaultRow = {
   excludeHolidays: true,
 };
 
-const LeavePolicy = () => {
+const LeavePolicies = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [activeRole, setActiveRole] = useState<typeof roles[number]>("ADMIN");
 
@@ -139,4 +139,4 @@ const LeavePolicy = () => {
   );
 };
 
-export default LeavePolicy;
+export default LeavePolicies;

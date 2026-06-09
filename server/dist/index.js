@@ -47,6 +47,7 @@ const appSettingsRoutes_1 = __importDefault(require("./routes/appSettingsRoutes"
 const clientRoutes_1 = __importDefault(require("./routes/clientRoutes"));
 const invoiceRoutes_1 = __importDefault(require("./routes/invoiceRoutes"));
 const stickyNotesRoutes_1 = __importDefault(require("./routes/stickyNotesRoutes"));
+const leaveRoutes_1 = __importDefault(require("./routes/leaveRoutes"));
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const io = (0, socketServer_1.setupSocketServer)(httpServer);
@@ -96,6 +97,7 @@ app.use("/transactions", transactions_1.default);
 app.use("/payments", payments_1.default);
 app.use("/authors", authorsRoutes_1.default);
 app.use("/attendance", attendanceRoutes_1.default);
+app.use("/leaves", leaveRoutes_1.default);
 app.use("/qr-code", qrCodeRoutes_1.default);
 app.use("/settings", appSettingsRoutes_1.default);
 app.use("/clients", clientRoutes_1.default);
@@ -104,7 +106,6 @@ app.use("/stickynotes", stickyNotesRoutes_1.default);
 httpServer.listen(Number(process.env.PORT) || 3002, "0.0.0.0", () => {
     console.log(`Server + WebSocket running on port ${process.env.PORT || 3001}`);
 });
-// Graceful shutdown
 process.on("SIGTERM", () => __awaiter(void 0, void 0, void 0, function* () {
     console.log("SIGTERM received. Closing Prisma client...");
     yield prisma.$disconnect();

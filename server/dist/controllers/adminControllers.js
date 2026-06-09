@@ -196,9 +196,14 @@ const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(403).json({ message: "Access denied: Admin only" });
             return;
         }
-        // Fetch all three types
+        const currentUserCognitoId = req.user.id;
         const [admins, accounts, staff] = yield Promise.all([
             prisma.admin.findMany({
+                where: {
+                    cognitoId: {
+                        not: currentUserCognitoId,
+                    },
+                },
                 select: {
                     id: true,
                     cognitoId: true,
@@ -218,9 +223,14 @@ const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                     nationality: true,
                     profilePicture: true,
                     createdAt: true,
-                }
+                },
             }),
             prisma.accounts.findMany({
+                where: {
+                    cognitoId: {
+                        not: currentUserCognitoId,
+                    },
+                },
                 select: {
                     id: true,
                     cognitoId: true,
@@ -240,9 +250,14 @@ const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                     nationality: true,
                     profilePicture: true,
                     createdAt: true,
-                }
+                },
             }),
             prisma.staff.findMany({
+                where: {
+                    cognitoId: {
+                        not: currentUserCognitoId,
+                    },
+                },
                 select: {
                     id: true,
                     cognitoId: true,
@@ -262,24 +277,26 @@ const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                     nationality: true,
                     profilePicture: true,
                     createdAt: true,
-                }
-            })
+                },
+            }),
         ]);
         const allUsers = [
-            ...admins.map(u => (Object.assign(Object.assign({}, u), { userType: "ADMIN" }))),
-            ...accounts.map(u => (Object.assign(Object.assign({}, u), { userType: "ACCOUNTS" }))),
-            ...staff.map(u => (Object.assign(Object.assign({}, u), { userType: "STAFF" }))),
-        ].sort((a, b) => a.name.localeCompare(b.name));
-        res.json({
+            ...admins.map((u) => (Object.assign(Object.assign({}, u), { userType: "ADMIN" }))),
+            ...accounts.map((u) => (Object.assign(Object.assign({}, u), { userType: "ACCOUNTS" }))),
+            ...staff.map((u) => (Object.assign(Object.assign({}, u), { userType: "STAFF" }))),
+        ]
+            .sort((a, b) => a.name.localeCompare(b.name));
+        res.status(200).json({
             success: true,
             count: allUsers.length,
-            data: allUsers
+            data: allUsers,
         });
     }
     catch (error) {
         console.error("Error in getAllUsers:", error);
         res.status(500).json({
-            message: `Error fetching all users: ${error.message}`
+            success: false,
+            message: `Error fetching all users: ${error.message}`,
         });
     }
 });

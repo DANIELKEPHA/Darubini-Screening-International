@@ -33,6 +33,7 @@ import appSettingsRoutes from "./routes/appSettingsRoutes";
 import clientRoutes from "./routes/clientRoutes";
 import invoiceRoutes from "./routes/invoiceRoutes";
 import stickyNotesRoutes from "./routes/stickyNotesRoutes";
+import leaveRoutes from "./routes/leaveRoutes";
 
 const app = express();
 const httpServer = createServer(app);
@@ -91,6 +92,7 @@ app.use("/transactions", transactions);
 app.use("/payments", payments);
 app.use("/authors", authorsRoutes);
 app.use("/attendance", attendanceRoutes);
+app.use("/leaves", leaveRoutes);
 app.use("/qr-code", qrCodeRoutes);
 app.use("/settings", appSettingsRoutes);
 app.use("/clients", clientRoutes);
@@ -101,7 +103,6 @@ httpServer.listen(Number(process.env.PORT) || 3002, "0.0.0.0", () => {
   console.log(`Server + WebSocket running on port ${process.env.PORT || 3001}`);
 });
 
-// Graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received. Closing Prisma client...");
   await prisma.$disconnect();

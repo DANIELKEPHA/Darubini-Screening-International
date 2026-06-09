@@ -7,7 +7,11 @@ const router = express.Router();
 
 router.get("/all-users", authMiddleware(["admin"]), getAllUsers);
 
-router.get("/:cognitoId", authMiddleware(["admin"]), getAdmin);
+router.get(
+    "/:cognitoId",
+    authMiddleware(["admin"]),
+    getAdmin
+);
 
 router.post(
     "/",

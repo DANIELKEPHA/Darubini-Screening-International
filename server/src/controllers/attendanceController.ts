@@ -4,16 +4,13 @@ import { getDistance } from "geolib";
 import { format, eachDayOfInterval, startOfMonth, differenceInDays, getDay, getHours } from "date-fns";
 import nodemailer from "nodemailer";
 
-// Initialize Prisma client
 const prisma = new PrismaClient();
 
-// Define AuthUser interface using Prisma UserRole
 interface AuthUser {
     id: string;
-    role: string; // Expect string from middleware, will normalize to PrismaUserRole
+    role: string;
 }
 
-// Environment variable validation
 const REFERENCE_LATITUDE = parseFloat(process.env.JOB_SITE_LAT || "");
 const REFERENCE_LONGITUDE = parseFloat(process.env.JOB_SITE_LNG || "");
 const GEOFENCE_RADIUS_METERS = parseFloat(process.env.GEOFENCE_RADIUS || "");
@@ -49,7 +46,7 @@ if (!SMTP_HOST || isNaN(SMTP_PORT) || !SMTP_USER || !SMTP_PASS) {
 const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
-    secure: SMTP_PORT === 465, // Use SSL/TLS for port 465
+    secure: SMTP_PORT === 465,
     auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
@@ -131,7 +128,6 @@ const normalizeRole = (role: string): PrismaUserRole => {
     return normalized;
 };
 
-// Utility function to calculate week of the month
 const getWeekOfMonth = (date: Date): number => {
     const startOfMonthDate = startOfMonth(date);
     const dayOfMonth = date.getDate();
@@ -139,7 +135,6 @@ const getWeekOfMonth = (date: Date): number => {
     return Math.ceil((dayOfMonth + firstDayOfWeek) / 7);
 };
 
-// Utility function to get user username based on role
 const getUserUsername = async (cognitoId: string, role: PrismaUserRole): Promise<string> => {
     try {
         let user;
@@ -159,7 +154,6 @@ const getUserUsername = async (cognitoId: string, role: PrismaUserRole): Promise
     }
 };
 
-// Utility function to send email notifications
 const sendEmailNotification = async (
     to: string,
     subject: string,
@@ -169,7 +163,6 @@ const sendEmailNotification = async (
     breakType?: BreakType | null
 ): Promise<{ success: boolean; error?: Error }> => {
     try {
-        // Verify transporter
         await transporter.verify();
 
         const template = action === "Check-In" ? CHECK_IN_EMAIL_TEMPLATE : CHECK_OUT_EMAIL_TEMPLATE;
@@ -257,7 +250,6 @@ export const getAttendanceRecords = async (req: Request, res: Response): Promise
             return;
         }
 
-        // Build where clause (no filters, role-based access)
         const where: Prisma.AttendanceWhereInput = {};
         if (role !== "ADMIN") {
             if (role === "ACCOUNTS") {
@@ -269,25 +261,21 @@ export const getAttendanceRecords = async (req: Request, res: Response): Promise
             }
         }
 
-        // Fetch total count
         const total = await prisma.attendance.count({ where });
 
-        // Fetch all records
         const records = await prisma.attendance.findMany({
             where,
             include: {
                 admin: true,
                 accounts: true,
                 staff: true,
-                user: true,
             },
             orderBy: { checkInTime: "desc" },
         });
 
-        // Enrich records with usernames if relations are missing
         const enrichedRecords = await Promise.all(
             records.map(async (record) => {
-                if (!record.admin && !record.accounts && !record.staff && !record.user) {
+                if (!record.admin && !record.accounts && !record.staff) {
                     const cognitoId = record.adminCognitoId || record.accountsCognitoId || record.staffCognitoId || record.userCognitoId;
                     if (cognitoId) {
                         try {
@@ -297,8 +285,6 @@ export const getAttendanceRecords = async (req: Request, res: Response): Promise
                                 record.accounts = await prisma.accounts.findUnique({ where: { cognitoId } });
                             } else if (record.staffCognitoId) {
                                 record.staff = await prisma.staff.findUnique({ where: { cognitoId } });
-                            } else if (record.userCognitoId) {
-                                record.user = await prisma.user.findUnique({ where: { cognitoId } });
                             }
                         } catch (error) {
                             console.error(`Error fetching user data for cognitoId ${cognitoId}:`, error);
@@ -309,7 +295,6 @@ export const getAttendanceRecords = async (req: Request, res: Response): Promise
             })
         );
 
-        // Create audit log
         await createAuditLog("READ", "multiple", role, cognitoId, {}, {
             count: enrichedRecords.length,
         });
@@ -337,7 +322,6 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // Check for existing active check-in
         const existingCheckIn = await prisma.attendance.findFirst({
             where: {
                 [role === "ADMIN" ? "adminCognitoId" :
@@ -346,7 +330,7 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
                 status: 'CHECKED_IN',
                 checkOutTime: null,
             },
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
 
         if (existingCheckIn) {
@@ -381,12 +365,11 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
                 status: 'CHECKED_IN',
                 checkInLat: latitude,
                 checkInLng: longitude,
-                breakType: breakType || null, // Include breakType if provided
+                breakType: breakType || null,
             },
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true},
         });
 
-        // Fetch user username
         const username = await getUserUsername(user.id, role);
 
         const emailResult = await sendEmailNotification(
@@ -430,7 +413,7 @@ export const checkOut = async (req: Request, res: Response): Promise<void> => {
                 status: 'CHECKED_IN',
                 checkOutTime: null,
             },
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
 
         if (!attendance) {
@@ -448,7 +431,7 @@ export const checkOut = async (req: Request, res: Response): Promise<void> => {
                 checkOutLng: longitude,
                 totalHours: { set: (new Date().getTime() - new Date(attendance.checkInTime!).getTime()) / (1000 * 60 * 60) },
             },
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
 
         // Fetch user username
@@ -566,7 +549,7 @@ export const getAttendanceSummary = async (req: Request, res: Response): Promise
 
         const records = await prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
 
         const totalHours = records.reduce((sum, r) => sum + (r.totalHours || 0), 0);
@@ -663,7 +646,7 @@ export const getLateCheckIns = async (req: Request, res: Response): Promise<void
 
         const records = await prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
 
         const lateCheckIns = records.filter(r => r.checkInTime && getHours(r.checkInTime) >= 9).length;
@@ -817,7 +800,7 @@ export const getBreakAnalytics = async (req: Request, res: Response): Promise<vo
 
         const records = await prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
 
         const breaks = records.filter(r => r.breakType);
@@ -852,14 +835,12 @@ export const getUserActivityStatus = async (req: Request, res: Response): Promis
                 where.accountsCognitoId = cognitoId;
             } else if (role === "STAFF") {
                 where.staffCognitoId = cognitoId;
-            } else if (role === "USER") {
-                where.userCognitoId = cognitoId;
             }
         }
 
         const records = await prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true},
             orderBy: { checkInTime: "desc" },
         });
 
@@ -900,21 +881,19 @@ export const generateAttendanceReport = async (req: Request, res: Response): Pro
                 where.accountsCognitoId = cognitoId;
             } else if (role === "STAFF") {
                 where.staffCognitoId = cognitoId;
-            } else if (role === "USER") {
-                where.userCognitoId = cognitoId;
             }
         }
 
         const records = await prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true},
             orderBy: { checkInTime: "desc" },
         });
 
         const report = records.map(r => ({
             id: r.id,
             userId: r.adminCognitoId || r.accountsCognitoId || r.staffCognitoId || r.userCognitoId,
-            username: r.admin?.name || r.accounts?.name || r.staff?.name || r.user?.name || "Unknown",
+            username: r.admin?.name || r.accounts?.name || r.staff?.name || "Unknown",
             checkInTime: r.checkInTime,
             checkOutTime: r.checkOutTime,
             totalHours: r.totalHours,

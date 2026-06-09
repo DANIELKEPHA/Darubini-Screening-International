@@ -47,14 +47,11 @@ const authMiddleware = (allowedRoles, allowUnauthenticated = false) => {
         var _a;
         const authHeader = req.headers.authorization;
         const token = (authHeader === null || authHeader === void 0 ? void 0 : authHeader.startsWith("Bearer ")) ? authHeader.split(" ")[1] : null;
-        console.log(`authMiddleware: token=${token ? "present" : "missing"}, path=${req.path}, allowedRoles=${allowedRoles}`);
         if (!token) {
             if (allowUnauthenticated) {
                 req.user = undefined;
-                console.log("authMiddleware: No token, proceeding as unauthenticated");
                 return next();
             }
-            console.log("authMiddleware: No token, rejecting");
             res.status(401).json({ message: "Unauthorized: No token provided" });
             return;
         }
@@ -84,9 +81,7 @@ const authMiddleware = (allowedRoles, allowUnauthenticated = false) => {
                 id: decoded.sub,
                 role: userRole,
             };
-            console.log("authMiddleware: req.user set to", req.user);
             if (!allowedRoles.includes(userRole)) {
-                console.log(`authMiddleware: Role ${userRole} not in allowedRoles [${allowedRoles.join(", ")}]`);
                 res.status(403).json({ message: `Access Denied: Role ${userRole} not authorized for this resource` });
                 return;
             }
@@ -96,7 +91,6 @@ const authMiddleware = (allowedRoles, allowUnauthenticated = false) => {
             console.error("authMiddleware: Failed to verify token:", err);
             if (allowUnauthenticated) {
                 req.user = undefined;
-                console.log("authMiddleware: Invalid token, proceeding as unauthenticated");
                 return next();
             }
             res.status(401).json({ message: `Unauthorized: Invalid token - ${err instanceof Error ? err.message : "Unknown error"}` });

@@ -251,7 +251,10 @@ export const updateAdmin = async (req: AuthRequest, res: Response): Promise<void
     }
 };
 
-export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getAllUsers = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
     try {
         if (!req.user) {
             res.status(401).json({ message: "Unauthorized: No user data" });
@@ -263,9 +266,15 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
             return;
         }
 
-        // Fetch all three types
+        const currentUserCognitoId = req.user.id;
+
         const [admins, accounts, staff] = await Promise.all([
             prisma.admin.findMany({
+                where: {
+                    cognitoId: {
+                        not: currentUserCognitoId,
+                    },
+                },
                 select: {
                     id: true,
                     cognitoId: true,
@@ -285,9 +294,15 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
                     nationality: true,
                     profilePicture: true,
                     createdAt: true,
-                }
+                },
             }),
+
             prisma.accounts.findMany({
+                where: {
+                    cognitoId: {
+                        not: currentUserCognitoId,
+                    },
+                },
                 select: {
                     id: true,
                     cognitoId: true,
@@ -307,9 +322,15 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
                     nationality: true,
                     profilePicture: true,
                     createdAt: true,
-                }
+                },
             }),
+
             prisma.staff.findMany({
+                where: {
+                    cognitoId: {
+                        not: currentUserCognitoId,
+                    },
+                },
                 select: {
                     id: true,
                     cognitoId: true,
@@ -329,26 +350,37 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
                     nationality: true,
                     profilePicture: true,
                     createdAt: true,
-                }
-            })
+                },
+            }),
         ]);
 
         const allUsers = [
-            ...admins.map(u => ({ ...u, userType: "ADMIN" as const })),
-            ...accounts.map(u => ({ ...u, userType: "ACCOUNTS" as const })),
-            ...staff.map(u => ({ ...u, userType: "STAFF" as const })),
-        ].sort((a, b) => a.name.localeCompare(b.name));
+            ...admins.map((u) => ({
+                ...u,
+                userType: "ADMIN" as const,
+            })),
+            ...accounts.map((u) => ({
+                ...u,
+                userType: "ACCOUNTS" as const,
+            })),
+            ...staff.map((u) => ({
+                ...u,
+                userType: "STAFF" as const,
+            })),
+        ]
+            .sort((a, b) => a.name.localeCompare(b.name));
 
-        res.json({
+        res.status(200).json({
             success: true,
             count: allUsers.length,
-            data: allUsers
+            data: allUsers,
         });
-
     } catch (error: any) {
         console.error("Error in getAllUsers:", error);
+
         res.status(500).json({
-            message: `Error fetching all users: ${error.message}`
+            success: false,
+            message: `Error fetching all users: ${error.message}`,
         });
     }
 };

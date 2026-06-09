@@ -17,9 +17,7 @@ const client_1 = require("@prisma/client");
 const geolib_1 = require("geolib");
 const date_fns_1 = require("date-fns");
 const nodemailer_1 = __importDefault(require("nodemailer"));
-// Initialize Prisma client
 const prisma = new client_1.PrismaClient();
-// Environment variable validation
 const REFERENCE_LATITUDE = parseFloat(process.env.JOB_SITE_LAT || "");
 const REFERENCE_LONGITUDE = parseFloat(process.env.JOB_SITE_LNG || "");
 const GEOFENCE_RADIUS_METERS = parseFloat(process.env.GEOFENCE_RADIUS || "");
@@ -53,7 +51,7 @@ if (!SMTP_HOST || isNaN(SMTP_PORT) || !SMTP_USER || !SMTP_PASS) {
 const transporter = nodemailer_1.default.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
-    secure: SMTP_PORT === 465, // Use SSL/TLS for port 465
+    secure: SMTP_PORT === 465,
     auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
@@ -131,14 +129,12 @@ const normalizeRole = (role) => {
     }
     return normalized;
 };
-// Utility function to calculate week of the month
 const getWeekOfMonth = (date) => {
     const startOfMonthDate = (0, date_fns_1.startOfMonth)(date);
     const dayOfMonth = date.getDate();
     const firstDayOfWeek = startOfMonthDate.getDay();
     return Math.ceil((dayOfMonth + firstDayOfWeek) / 7);
 };
-// Utility function to get user username based on role
 const getUserUsername = (cognitoId, role) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         let user;
@@ -161,10 +157,8 @@ const getUserUsername = (cognitoId, role) => __awaiter(void 0, void 0, void 0, f
         return "Unknown";
     }
 });
-// Utility function to send email notifications
 const sendEmailNotification = (to, subject, username, action, time, breakType) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Verify transporter
         yield transporter.verify();
         const template = action === "Check-In" ? CHECK_IN_EMAIL_TEMPLATE : CHECK_OUT_EMAIL_TEMPLATE;
         const formattedTime = (0, date_fns_1.format)(time, 'PP HH:mm:ss');
@@ -227,7 +221,6 @@ const getAttendanceRecords = (req, res) => __awaiter(void 0, void 0, void 0, fun
             res.status(403).json({ message: "You don't have permission to view attendance records." });
             return;
         }
-        // Build where clause (no filters, role-based access)
         const where = {};
         if (role !== "ADMIN") {
             if (role === "ACCOUNTS") {
@@ -240,22 +233,18 @@ const getAttendanceRecords = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 where.userCognitoId = cognitoId;
             }
         }
-        // Fetch total count
         const total = yield prisma.attendance.count({ where });
-        // Fetch all records
         const records = yield prisma.attendance.findMany({
             where,
             include: {
                 admin: true,
                 accounts: true,
                 staff: true,
-                user: true,
             },
             orderBy: { checkInTime: "desc" },
         });
-        // Enrich records with usernames if relations are missing
         const enrichedRecords = yield Promise.all(records.map((record) => __awaiter(void 0, void 0, void 0, function* () {
-            if (!record.admin && !record.accounts && !record.staff && !record.user) {
+            if (!record.admin && !record.accounts && !record.staff) {
                 const cognitoId = record.adminCognitoId || record.accountsCognitoId || record.staffCognitoId || record.userCognitoId;
                 if (cognitoId) {
                     try {
@@ -268,9 +257,6 @@ const getAttendanceRecords = (req, res) => __awaiter(void 0, void 0, void 0, fun
                         else if (record.staffCognitoId) {
                             record.staff = yield prisma.staff.findUnique({ where: { cognitoId } });
                         }
-                        else if (record.userCognitoId) {
-                            record.user = yield prisma.user.findUnique({ where: { cognitoId } });
-                        }
                     }
                     catch (error) {
                         console.error(`Error fetching user data for cognitoId ${cognitoId}:`, error);
@@ -279,7 +265,6 @@ const getAttendanceRecords = (req, res) => __awaiter(void 0, void 0, void 0, fun
             }
             return record;
         })));
-        // Create audit log
         yield createAuditLog("READ", "multiple", role, cognitoId, {}, {
             count: enrichedRecords.length,
         });
@@ -306,7 +291,6 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             res.status(400).json({ message: 'Invalid break type' });
             return;
         }
-        // Check for existing active check-in
         const existingCheckIn = yield prisma.attendance.findFirst({
             where: {
                 [role === "ADMIN" ? "adminCognitoId" :
@@ -315,7 +299,7 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 status: 'CHECKED_IN',
                 checkOutTime: null,
             },
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
         if (existingCheckIn) {
             yield createAuditLog("CHECK_IN_ATTEMPT_ALREADY_CHECKED_IN", existingCheckIn.id.toString(), role, user.id, existingCheckIn, {
@@ -344,11 +328,10 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 status: 'CHECKED_IN',
                 checkInLat: latitude,
                 checkInLng: longitude,
-                breakType: breakType || null, // Include breakType if provided
+                breakType: breakType || null,
             },
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
-        // Fetch user username
         const username = yield getUserUsername(user.id, role);
         const emailResult = yield sendEmailNotification(NOTIFICATION_EMAIL, `Attendance Check-In: ${username}`, username, "Check-In", attendance.checkInTime);
         // Create audit log with email result
@@ -383,7 +366,7 @@ const checkOut = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 status: 'CHECKED_IN',
                 checkOutTime: null,
             },
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
         if (!attendance) {
             console.warn('No active check-in found', { userId: user.id, role });
@@ -399,7 +382,7 @@ const checkOut = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 checkOutLng: longitude,
                 totalHours: { set: (new Date().getTime() - new Date(attendance.checkInTime).getTime()) / (1000 * 60 * 60) },
             },
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
         // Fetch user username
         const username = yield getUserUsername(user.id, role);
@@ -502,7 +485,7 @@ const getAttendanceSummary = (req, res) => __awaiter(void 0, void 0, void 0, fun
         }
         const records = yield prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
         const totalHours = records.reduce((sum, r) => sum + (r.totalHours || 0), 0);
         const sessionCount = records.length;
@@ -591,7 +574,7 @@ const getLateCheckIns = (req, res) => __awaiter(void 0, void 0, void 0, function
         }
         const records = yield prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
         const lateCheckIns = records.filter(r => r.checkInTime && (0, date_fns_1.getHours)(r.checkInTime) >= 9).length;
         yield createAuditLog("READ_LATE_CHECKINS", "multiple", role, cognitoId, {}, { count: lateCheckIns });
@@ -727,7 +710,7 @@ const getBreakAnalytics = (req, res) => __awaiter(void 0, void 0, void 0, functi
         }
         const records = yield prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
         });
         const breaks = records.filter(r => r.breakType);
         const analytics = {
@@ -762,13 +745,10 @@ const getUserActivityStatus = (req, res) => __awaiter(void 0, void 0, void 0, fu
             else if (role === "STAFF") {
                 where.staffCognitoId = cognitoId;
             }
-            else if (role === "USER") {
-                where.userCognitoId = cognitoId;
-            }
         }
         const records = yield prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
             orderBy: { checkInTime: "desc" },
         });
         const uniqueUsers = [...new Set(records.map(r => r.adminCognitoId || r.accountsCognitoId || r.staffCognitoId || r.userCognitoId))];
@@ -806,21 +786,18 @@ const generateAttendanceReport = (req, res) => __awaiter(void 0, void 0, void 0,
             else if (role === "STAFF") {
                 where.staffCognitoId = cognitoId;
             }
-            else if (role === "USER") {
-                where.userCognitoId = cognitoId;
-            }
         }
         const records = yield prisma.attendance.findMany({
             where,
-            include: { admin: true, accounts: true, staff: true, user: true },
+            include: { admin: true, accounts: true, staff: true },
             orderBy: { checkInTime: "desc" },
         });
         const report = records.map(r => {
-            var _a, _b, _c, _d;
+            var _a, _b, _c;
             return ({
                 id: r.id,
                 userId: r.adminCognitoId || r.accountsCognitoId || r.staffCognitoId || r.userCognitoId,
-                username: ((_a = r.admin) === null || _a === void 0 ? void 0 : _a.name) || ((_b = r.accounts) === null || _b === void 0 ? void 0 : _b.name) || ((_c = r.staff) === null || _c === void 0 ? void 0 : _c.name) || ((_d = r.user) === null || _d === void 0 ? void 0 : _d.name) || "Unknown",
+                username: ((_a = r.admin) === null || _a === void 0 ? void 0 : _a.name) || ((_b = r.accounts) === null || _b === void 0 ? void 0 : _b.name) || ((_c = r.staff) === null || _c === void 0 ? void 0 : _c.name) || "Unknown",
                 checkInTime: r.checkInTime,
                 checkOutTime: r.checkOutTime,
                 totalHours: r.totalHours,

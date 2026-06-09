@@ -61,6 +61,8 @@ model Admin {
   operationalExpenses        OperationalExpense[]      @relation("AdminOperationalExpenses")
   quotations                 Quotation[]               @relation("AdminQuotations")
 
+  leaveRequestsApproved      LeaveRequest[]     @relation("AdminLeaveApprovals")
+
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -77,7 +79,6 @@ model User {
   email                       String
   phoneNumber                 String?
   role                        UserRole             @default(USER)
-  attendanceRecords           Attendance[]         @relation("UserAttendanceRecords")
   auditLogs                   AuditLog[]           @relation("UserAuditLogs")
   chatRooms                   ChatRoom[]           @relation("UserChatRooms")
   approvedClientExpenses      ClientExpense[]      @relation("UserClientExpensesApproved")
@@ -121,7 +122,6 @@ model Accounts {
 
   role                UserRole @default(ACCOUNTS)
 
-  // Relations
   attendanceRecords          Attendance[]                   @relation("AccountsAttendanceRecords")
   auditLogs                  AuditLog[]                     @relation("AccountsAuditLogs")
   createdBankAccounts        BankAccount[]                  @relation("AccountsBankAccountsCreated")
@@ -159,7 +159,6 @@ model Accounts {
 
   createdTransactions        Transaction[]                  @relation("AccountsTransactionsCreated")
 
-  // Timestamps
   createdAt                  DateTime                       @default(now())
   updatedAt                  DateTime                       @updatedAt
 
@@ -858,6 +857,253 @@ model EmployeeSchedule {
   @@index([cognitoId, dayOfWeek])
 }
 
+model LeaveRequest {
+  id Int @id @default(autoincrement())
+
+  requesterCognitoId String
+  requesterRole UserRole
+
+  leaveType LeaveType
+  otherLeaveType String?
+
+  startDate DateTime
+  endDate DateTime
+
+  approvedAt DateTime?
+  rejectedAt DateTime?
+
+  daysRequested Decimal @db.Decimal(5,2)
+  totalWorkingDays Decimal @db.Decimal(5,2)
+
+  reason String?
+
+  status LeaveStatus @default(PENDING)
+
+  approvals LeaveApproval[]
+
+  ledgerEntries LeaveLedger[]
+  attendanceRecords Attendance[] @relation("LeaveToAttendance")
+  leaveBalanceId Int?
+
+  leaveBalance LeaveBalance? @relation("LeaveBalanceUsage", fields: [leaveBalanceId], references: [id])
+
+  approvedByAdminCognitoId String?
+  approvedByAdmin Admin? @relation("AdminLeaveApprovals", fields: [approvedByAdminCognitoId], references: [cognitoId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([requesterCognitoId])
+  @@index([status])
+}
+
+model LeavePolicy {
+  id                    Int                @id @default(autoincrement())
+  year                  Int
+  role                  UserRole
+
+  annualLeaveDays       Int                @default(21)
+  sickLeaveDays         Int                @default(10)
+  compassionateDays     Int                @default(5)
+  maternityDays         Int                @default(90)
+  paternityDays         Int                @default(14)
+  emergencyDays         Int                @default(5)
+  studyLeaveDays        Int?
+  unpaidLeaveAllowed    Boolean            @default(true)
+
+  accrualType           LeaveAccrualType   @default(ANNUAL)
+  carryForwardType      LeaveCarryForwardType @default(PARTIAL)
+  carryForwardMaxDays   Int?               @default(5)
+  workingDaysPerWeek    Int                @default(5)
+  excludeHolidays       Boolean            @default(true)
+  includeWeekends       Boolean            @default(false)
+
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  leaveBalances         LeaveBalance[]
+  accruals LeaveAccrual[]
+
+  @@unique([year, role])
+  @@index([year])
+  @@index([role])
+}
+
+model LeaveBalance {
+  id Int @id @default(autoincrement())
+
+  cognitoId String
+  role UserRole
+  year Int
+
+  annualEntitled Decimal @db.Decimal(5,2)
+  sickEntitled Decimal @db.Decimal(5,2)
+  compassionateEntitled Decimal @db.Decimal(5,2)
+  emergencyEntitled Decimal @db.Decimal(5,2)
+
+  annualUsed Decimal @db.Decimal(5,2) @default(0)
+  sickUsed Decimal @db.Decimal(5,2) @default(0)
+  compassionateUsed Decimal @db.Decimal(5,2) @default(0)
+  emergencyUsed Decimal @db.Decimal(5,2) @default(0)
+
+  annualRemaining Decimal @db.Decimal(5,2)
+  sickRemaining Decimal @db.Decimal(5,2)
+  compassionateRemaining Decimal @db.Decimal(5,2)
+  emergencyRemaining Decimal @db.Decimal(5,2)
+
+  lastAccruedAt DateTime?
+  lastUpdatedAt DateTime @updatedAt
+
+  isLocked Boolean @default(false)
+
+  policy LeavePolicy @relation(fields: [year, role], references: [year, role])
+
+  usedInLeaveRequests LeaveRequest[] @relation("LeaveBalanceUsage")
+
+  ledgerEntries LeaveLedger[]
+  accruals LeaveAccrual[]
+
+  @@unique([cognitoId, year])
+}
+
+model LeaveLedger {
+  id Int @id @default(autoincrement())
+
+  cognitoId String
+  role UserRole
+  year Int
+
+  leaveType LeaveType
+
+  transactionType LeaveTransactionType
+
+  days Decimal @db.Decimal(5,2)
+
+  balanceBefore Decimal @db.Decimal(5,2)
+  balanceAfter Decimal @db.Decimal(5,2)
+
+  leaveRequestId Int?
+  leaveRequest LeaveRequest? @relation(fields: [leaveRequestId], references: [id], onDelete: SetNull)
+
+  approvalId Int?
+  approval LeaveApproval? @relation(fields: [approvalId], references: [id], onDelete: SetNull)
+
+  leaveBalanceId Int?
+  leaveBalance LeaveBalance? @relation(fields: [leaveBalanceId], references: [id])
+
+  remarks String?
+
+  accruals LeaveAccrual[]
+
+  performedByCognitoId String?
+  performedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@index([cognitoId, year])
+  @@index([leaveRequestId])
+}
+
+model LeaveAccrual {
+  id Int @id @default(autoincrement())
+
+  cognitoId String
+  role UserRole
+
+  year Int
+  month Int
+
+  leaveType LeaveType
+
+  accruedDays Decimal @db.Decimal(5,2)
+
+  policyId Int?
+  policy LeavePolicy? @relation(fields: [policyId], references: [id])
+
+  leaveBalanceId Int?
+  leaveBalance LeaveBalance? @relation(fields: [leaveBalanceId], references: [id])
+
+  ledgerId Int?
+  ledger LeaveLedger? @relation(fields: [ledgerId], references: [id])
+
+  processedAt DateTime @default(now())
+
+  @@unique([cognitoId, year, month, leaveType])
+}
+
+model LeaveApproval {
+  id                    Int             @id @default(autoincrement())
+
+  leaveRequestId        Int
+  leaveRequest          LeaveRequest    @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+
+  approvalLevel         Int
+
+  approverCognitoId     String
+  approverRole          UserRole
+
+  status                ApprovalStatus  @default(PENDING)
+
+  ledgerEntries LeaveLedger[]
+
+  comments              String?
+
+  actionedAt            DateTime?
+
+  delegatedBy           String?
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([leaveRequestId])
+  @@index([approverCognitoId])
+  @@index([approvalLevel])
+  @@index([status])
+}
+
+model WorkScheduleOverride {
+  id Int @id @default(autoincrement())
+
+  cognitoId String
+
+  type String
+
+  startDate DateTime
+  endDate DateTime
+
+  hoursPerDay Decimal @db.Decimal(4,2)
+
+  createdAt DateTime @default(now())
+}
+
+model LeavePolicyRule {
+  id            Int @id @default(autoincrement())
+
+  leaveType     LeaveType
+
+  role          UserRole?
+
+  year          Int?
+
+  maxDays       Decimal? @db.Decimal(5,2)
+
+  conditionType  LeaveConditionType?
+
+  conditionValue Int?
+
+  payPercentage  Decimal? @db.Decimal(5,2)
+
+  allowsHalfDay  Boolean @default(false)
+
+  requiresMedical Boolean @default(false)
+
+  requiresApproval Boolean @default(true)
+
+  isDiscretionary Boolean @default(false)
+
+  createdAt      DateTime @default(now())
+}
+
 model Attendance {
   id                Int              @id @default(autoincrement())
   userCognitoId     String?
@@ -879,9 +1125,10 @@ model Attendance {
   accounts          Accounts?        @relation("AccountsAttendanceRecords", fields: [accountsCognitoId], references: [cognitoId])
   admin             Admin?           @relation("AdminAttendanceRecords", fields: [adminCognitoId], references: [cognitoId])
   staff             Staff?           @relation("StaffAttendanceRecords", fields: [staffCognitoId], references: [cognitoId])
-  user              User?            @relation("UserAttendanceRecords", fields: [userCognitoId], references: [cognitoId])
 
-  @@index([userCognitoId, checkInTime])
+  leaveRequestId   Int?
+  leaveRequest     LeaveRequest? @relation("LeaveToAttendance", fields: [leaveRequestId], references: [id])
+
   @@index([adminCognitoId, checkInTime])
   @@index([accountsCognitoId, checkInTime])
   @@index([staffCognitoId, checkInTime])
@@ -982,12 +1229,75 @@ model spatial_ref_sys {
   proj4text String? @db.VarChar(2048)
 }
 
+enum LeaveTransactionType {
+  ALLOCATION
+  ACCRUAL
+  APPROVAL
+  REVERSAL
+  CANCELLATION
+  CARRY_FORWARD
+  ADJUSTMENT
+  ENCASHMENT
+  EXPIRY
+}
+
 enum SenderType {
   USER
   GUEST
   ADMIN
   ACCOUNTS
   STAFF
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  EMERGENCY
+
+  MATERNITY
+  PATERNITY
+
+  COMPASSIONATE
+  OFF_DAY
+  STUDY
+  UNPAID
+  PUBLIC_HOLIDAY
+  JURY_DUTY
+  BEREAVEMENT
+  OTHER
+}
+
+enum LeaveConditionType {
+  SERVICE_YEARS
+  DEFAULT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  SKIPPED
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveAccrualType {
+  MONTHLY
+  ANNUAL
+  QUARTERLY
+  ONE_TIME
+}
+
+enum LeaveCarryForwardType {
+  NONE
+  PARTIAL
+  FULL
 }
 
 enum CampaignStatus {

@@ -42,6 +42,270 @@ export enum AttendanceStatus {
     REJECTED = "REJECTED",
 }
 
+export enum LeaveStatus {
+    PENDING = "PENDING",
+    APPROVED = "APPROVED",
+    REJECTED = "REJECTED",
+    CANCELLED = "CANCELLED",
+    IN_REVIEW = "IN_REVIEW",
+    ESCALATED = "ESCALATED",
+}
+
+export interface LeaveBalance {
+    id: number;
+
+    cognitoId: string;
+    role: string;
+    year: number;
+
+    annualEntitled: number;
+    sickEntitled: number;
+    compassionateEntitled: number;
+    emergencyEntitled: number;
+
+    annualUsed: number;
+    sickUsed: number;
+    compassionateUsed: number;
+    emergencyUsed: number;
+
+    annualRemaining: number;
+    sickRemaining: number;
+    compassionateRemaining: number;
+    emergencyRemaining: number;
+
+    lastAccruedAt?: string | null;
+    lastUpdatedAt: string;
+
+    isLocked: boolean;
+}
+
+export interface LeaveApproval {
+    id: number;
+
+    leaveRequestId: number;
+
+    approvalLevel: number;
+
+    approverCognitoId: string;
+    approverRole: string;
+
+    status: "PENDING" | "APPROVED" | "REJECTED";
+
+    comments?: string | null;
+
+    actionedAt?: string | null;
+
+    delegatedBy?: string | null;
+
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface LeaveLedger {
+    id: number;
+
+    cognitoId: string;
+    role: string;
+    year: number;
+
+    leaveType: LeaveType;
+
+    transactionType:
+        | "REQUEST_CREATED"
+        | "APPROVED"
+        | "REJECTED"
+        | "CANCELLED"
+        | "BALANCE_DEDUCTED"
+        | "ACCRUAL_ADDED";
+
+    days: number;
+
+    balanceBefore: number;
+    balanceAfter: number;
+
+    leaveRequestId?: number | null;
+
+    approvalId?: number | null;
+
+    remarks?: string | null;
+
+    performedByCognitoId?: string | null;
+
+    performedAt: string;
+
+    createdAt: string;
+}
+
+export interface PaginationMeta {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+}
+
+export interface LeaveBalanceResponse {
+    annualEntitled: number;
+    annualUsed: number;
+    annualRemaining: number;
+
+    sickEntitled: number;
+    sickUsed: number;
+    sickRemaining: number;
+
+    compassionateEntitled: number;
+    compassionateUsed: number;
+    compassionateRemaining: number;
+
+    emergencyEntitled: number;
+    emergencyUsed: number;
+    emergencyRemaining: number;
+
+    maternityEntitled: number;
+    maternityUsed: number;
+    maternityRemaining: number;
+
+    paternityEntitled: number;
+    paternityUsed: number;
+    paternityRemaining: number;
+
+    offDayEntitled: number;
+    offDayUsed: number;
+    offDayRemaining: number;
+
+    studyEntitled: number;
+    studyUsed: number;
+    studyRemaining: number;
+
+    unpaidEntitled: number;
+    unpaidUsed: number;
+    unpaidRemaining: number;
+
+    publicHolidayEntitled: number;
+    publicHolidayUsed: number;
+    publicHolidayRemaining: number;
+
+    juryDutyEntitled: number;
+    juryDutyUsed: number;
+    juryDutyRemaining: number;
+
+    bereavementEntitled: number;
+    bereavementUsed: number;
+    bereavementRemaining: number;
+
+    isLocked: boolean;
+}
+
+export interface LeaveRequest {
+    id: number;
+
+    requesterCognitoId: string;
+    requesterRole: string;
+
+    leaveType: LeaveType;
+    otherLeaveType?: string | null;
+
+    startDate: string;
+    endDate: string;
+
+    daysRequested: number;
+    totalWorkingDays: number;
+
+    reason?: string | null;
+
+    status: LeaveStatus;
+
+    leaveBalanceId?: number | null;
+
+    leaveBalance?: LeaveBalance;
+
+    approvals?: LeaveApproval[];
+
+    ledgerEntries?: LeaveLedger[];
+
+    approvedByAdminCognitoId?: string | null;
+
+    remarks?: string | null;
+
+    approvedAt?: string | null;
+
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface LeaveDecision {
+    allowed: boolean;
+
+    reason?: string;
+
+    leaveCategory: "ENTITLED" | "DISCRETIONARY" | "SPECIAL_RULE";
+
+    chargeableDays: number;
+
+    payImpact: {
+        fullPayDays: number;
+        halfPayDays: number;
+        unpaidDays: number;
+    };
+
+    balanceImpact: {
+        leaveType: LeaveType;
+        daysToDeduct: number;
+    };
+
+    requiredApprovals: string[];
+
+    policyFlags: {
+        requiresMedical: boolean;
+        allowsHalfDay: boolean;
+        isDiscretionary: boolean;
+    };
+
+    /**
+     * Optional extended metadata for UI + analytics
+     */
+    metadata?: LeaveDecisionMetadata;
+}
+
+export interface LeaveDecisionMetadata {
+    balanceBefore?: number;
+    balanceAfter?: number;
+    entitledDays?: number;
+    usedDays?: number;
+
+    serviceYears?: number;
+
+    entitlementType?: "FIRST_YEAR" | "POST_FIRST_YEAR";
+
+    maxAllowedDays?: number;
+
+    urgencyLevel?: "LOW" | "MEDIUM" | "HIGH";
+
+    approvalTier?: "MANAGER_ONLY" | "HR_REQUIRED" | "FULL_CHAIN";
+
+    requiresJustification?: boolean;
+
+    validationFailed?: boolean;
+
+    leaveType?: LeaveType;
+
+    [key: string]: any;
+}
+
+export enum LeaveType {
+    ANNUAL = "ANNUAL",
+    SICK = "SICK",
+    EMERGENCY = "EMERGENCY",
+    MATERNITY_PATERNITY = "MATERNITY_PATERNITY",
+    COMPASSIONATE = "COMPASSIONATE",
+    OFF_DAY = "OFF_DAY",
+    STUDY = "STUDY",
+    UNPAID = "UNPAID",
+    PUBLIC_HOLIDAY = "PUBLIC_HOLIDAY",
+    JURY_DUTY = "JURY_DUTY",
+    BEREAVEMENT = "BEREAVEMENT",
+    OTHER = "OTHER",
+}
+
 export enum PaymentStatus {
     PENDING = "PENDING",
     PAID = "PAID",

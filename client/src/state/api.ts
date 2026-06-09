@@ -36,7 +36,8 @@ import {
     UserActivityStatus,
     AttendanceReportResponse, ClientExpense,
     AttendanceResponse, ClientExpenseFilters, Invoice, InvoiceItem, ClientExpensesResponse, ExpenseStatus, StickyNote,
-    StickyNoteInput, DepositResponse, DailyBalanceResponse
+    StickyNoteInput, DepositResponse, DailyBalanceResponse, LeaveRequest, LeaveDecision, LeaveBalance, PaginationMeta,
+    LeaveLedger, LeaveBalanceResponse,
 } from "@/state/types";
 import ExpenseType = $Enums.ExpenseType;
 import Decimal from "decimal.js";
@@ -92,6 +93,10 @@ export const api = createApi({
         "MobileAccount",
         'Authors',
         "Attendance",
+        'Leave',
+        'LeaveBalance',
+        "UserLeaveData",
+        'LeaveSummary',
         "AppSettings",
         "Clients",
         "Invoices",
@@ -3607,6 +3612,293 @@ export const api = createApi({
             },
         }),
 
+        getUserLeaveData: build.query<
+            {
+                user: {
+                    id?: string;
+                    cognitoId: string;
+                    name: string;
+                    email: string;
+                    profilePicture?: string | null;
+                } | null;
+
+                balance: LeaveBalance | null;
+                policy: any;
+                requests: LeaveRequest[];
+                accruals: any[];
+                ledger: LeaveLedger[];
+
+                summary: {
+                    totalRequests: number;
+                    pendingRequests: number;
+                    approvedRequests: number;
+                    rejectedRequests: number;
+                };
+            },
+            string
+        >({
+            query: (cognitoId) => `leaves/user/${cognitoId}`,
+
+            transformResponse: (response: any) => {
+                const data = response?.data;
+
+                return {
+                    user: data?.user
+                        ? {
+                            id: data.user.id,
+                            cognitoId: data.user.cognitoId,
+                            name: data.user.name ?? "Unknown User",
+                            email: data.user.email ?? "No email available",
+                            profilePicture: data.user.profilePicture ?? null,
+                        }
+                        : null,
+
+                    balance: data?.balance ?? null,
+                    policy: data?.policy ?? null,
+
+                    requests: data?.requests ?? [],
+                    accruals: data?.accruals ?? [],
+                    ledger: data?.ledger ?? [],
+
+                    summary: data?.summary ?? {
+                        totalRequests: 0,
+                        pendingRequests: 0,
+                        approvedRequests: 0,
+                        rejectedRequests: 0,
+                    },
+                };
+            },
+
+            providesTags: (result, error, cognitoId) => [
+                { type: "Leave", id: `USER_${cognitoId}` },
+                { type: "LeaveBalance", id: `USER_${cognitoId}` },
+                { type: "UserLeaveData", id: cognitoId },
+            ],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Loading user leave data...",
+                    success: "User leave data loaded successfully",
+                    error: (error: any) =>
+                        error.data?.message || "Failed to load user leave data",
+                });
+            },
+        }),
+
+        createLeaveRequest: build.mutation<
+            {
+                request: LeaveRequest;
+                decision: LeaveDecision;
+                message: string;
+            },
+            {
+                leaveType: string;
+                otherLeaveType?: string;
+                startDate: string;
+                endDate: string;
+                reason?: string;
+            }
+        >({
+            query: (body) => ({
+                url: "leaves",
+                method: "POST",
+                body,
+            }),
+
+            invalidatesTags: [
+                { type: "Leave", id: "LIST" },
+                { type: "LeaveBalance" },
+            ],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Submitting leave request...",
+                    success: "Leave request submitted successfully",
+                    error: (error: any) =>
+                        error.data?.message || "Failed to submit leave request",
+                });
+            },
+        }),
+
+        getMyLeaveRequests: build.query<
+            {
+                data: LeaveRequest[];
+                pagination: PaginationMeta;
+            },
+            {
+                status?: string;
+                leaveType?: string;
+                page?: number;
+                limit?: number;
+            }
+        >({
+            query: (params) => ({
+                url: "leaves/my-requests",
+                params,
+            }),
+
+            providesTags: (result) => [
+                { type: "Leave", id: "LIST" },
+            ],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Fetching your leave requests...",
+                    success: "Leave requests loaded successfully",
+                    error: (error: any) =>
+                        error.data?.message || "Failed to fetch leave requests",
+                });
+            },
+        }),
+
+        getLeaveRequests: build.query<
+            {
+                data: LeaveRequest[];
+                pagination: PaginationMeta;
+            },
+            {
+                status?: string;
+                leaveType?: string;
+                page?: number;
+                limit?: number;
+            }
+        >({
+            query: (params) => ({
+                url: "leaves",
+                params,
+            }),
+
+            providesTags: (result) => [
+                { type: "Leave", id: "LIST" },
+            ],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Fetching all leave requests...",
+                    success: "Leave requests fetched successfully",
+                    error: (error: any) =>
+                        error.data?.message || "Failed to fetch leave requests",
+                });
+            },
+        }),
+
+        previewLeaveDecision: build.mutation<
+            LeaveDecision,
+            {
+                leaveType: string;
+                startDate: string;
+                endDate: string;
+                reason?: string;
+            }
+        >({
+            query: (body) => ({
+                url: "leaves/preview",
+                method: "POST",
+                body,
+            }),
+        }),
+
+        getLeaveBalance: build.query<LeaveBalanceResponse, void>({
+            query: () => "leaves/balance",
+
+            providesTags: [{ type: "LeaveBalance", id: "ME" }],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                } catch (error) {
+                    console.error("Failed to load leave balance", error);
+                }
+            },
+        }),
+
+        getUserLeaveBalance: build.query<
+            LeaveBalance,
+            { cognitoId: string }
+        >({
+            query: ({ cognitoId }) =>
+                `leaves/user/${cognitoId}`,
+
+            providesTags: (result, error, arg) => [
+                { type: "LeaveBalance", id: arg.cognitoId }
+            ],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                } catch (error) {
+                    console.error("Failed to load user balance", error);
+                }
+            },
+        }),
+
+        approveLeaveRequest: build.mutation<
+            { message: string; data: any },
+            {
+                leaveRequestId: number;
+                approvalId: number;
+                comments?: string;
+            }
+        >({
+            query: (body) => ({
+                url: "leaves/approve",
+                method: "POST",
+                body,
+            }),
+
+            invalidatesTags: (result, error, arg) => [
+                { type: "Leave", id: "LIST" },
+                { type: "Leave", id: `REQUEST_${arg.leaveRequestId}` },
+                { type: "LeaveBalance", id: "ME" },
+            ],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                } catch (error: any) {
+                    console.error("Approve leave failed", error);
+                }
+            },
+        }),
+
+        rejectLeaveRequest: build.mutation<
+            { message: string; data: any },
+            {
+                leaveRequestId: number;
+                approvalId: number;
+                comments?: string;
+            }
+        >({
+            query: (body) => ({
+                url: "leaves/reject",
+                method: "POST",
+                body,
+            }),
+
+            invalidatesTags: (result, error, arg) => [
+                { type: "Leave", id: "LIST" },
+                { type: "Leave", id: `REQUEST_${arg.leaveRequestId}` },
+                { type: "LeaveBalance", id: "ME" },
+            ],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                } catch (error: any) {
+                    console.error("Reject leave failed", error);
+                }
+            },
+        }),
+
+        invalidateLeaveBalance: build.mutation<void, void>({
+            query: () => ({
+                url: "leaves/balance/refresh",
+                method: "POST",
+            }),
+
+            invalidatesTags: [{ type: "LeaveBalance", id: "ME" }],
+        }),
+
         getPublicSignUpSettings: build.query<{ isSignUpEnabled: boolean }, void>({
             queryFn: async (_, _queryApi, _extraOptions, fetchWithBQ) => {
                 try {
@@ -4523,6 +4815,14 @@ export const {
     useGenerateAttendanceReportQuery,
     useValidateQRCodeMutation,
     useGenerateQRCodeMutation,
+    useGetUserLeaveDataQuery,
+    useCreateLeaveRequestMutation,
+    useGetMyLeaveRequestsQuery,
+    useGetLeaveRequestsQuery,
+    usePreviewLeaveDecisionMutation,
+    useGetLeaveBalanceQuery,
+    useApproveLeaveRequestMutation,
+    useRejectLeaveRequestMutation,
     useGetSignUpEnabledQuery,
     useUpdateSignUpEnabledMutation,
     useGetPublicSignUpSettingsQuery,

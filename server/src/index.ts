@@ -34,6 +34,7 @@ import clientRoutes from "./routes/clientRoutes";
 import invoiceRoutes from "./routes/invoiceRoutes";
 import stickyNotesRoutes from "./routes/stickyNotesRoutes";
 import leaveRoutes from "./routes/leaveRoutes";
+import leavePoliciesRoutes from "./routes/leavePoliciesRoutes";
 
 const app = express();
 const httpServer = createServer(app);
@@ -93,6 +94,7 @@ app.use("/payments", payments);
 app.use("/authors", authorsRoutes);
 app.use("/attendance", attendanceRoutes);
 app.use("/leaves", leaveRoutes);
+app.use("/leave-policies", leavePoliciesRoutes);
 app.use("/qr-code", qrCodeRoutes);
 app.use("/settings", appSettingsRoutes);
 app.use("/clients", clientRoutes);

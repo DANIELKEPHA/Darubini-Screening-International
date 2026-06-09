@@ -1012,22 +1012,15 @@ model LeaveAccrual {
 
   year Int
   month Int
-
   leaveType LeaveType
-
   accruedDays Decimal @db.Decimal(5,2)
-
   policyId Int?
   policy LeavePolicy? @relation(fields: [policyId], references: [id])
-
   leaveBalanceId Int?
   leaveBalance LeaveBalance? @relation(fields: [leaveBalanceId], references: [id])
-
   ledgerId Int?
   ledger LeaveLedger? @relation(fields: [ledgerId], references: [id])
-
   processedAt DateTime @default(now())
-
   @@unique([cognitoId, year, month, leaveType])
 }
 
@@ -1036,22 +1029,14 @@ model LeaveApproval {
 
   leaveRequestId        Int
   leaveRequest          LeaveRequest    @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
-
   approvalLevel         Int
-
   approverCognitoId     String
   approverRole          UserRole
-
   status                ApprovalStatus  @default(PENDING)
-
   ledgerEntries LeaveLedger[]
-
   comments              String?
-
   actionedAt            DateTime?
-
   delegatedBy           String?
-
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
 
@@ -1065,7 +1050,6 @@ model WorkScheduleOverride {
   id Int @id @default(autoincrement())
 
   cognitoId String
-
   type String
 
   startDate DateTime
@@ -1080,27 +1064,16 @@ model LeavePolicyRule {
   id            Int @id @default(autoincrement())
 
   leaveType     LeaveType
-
   role          UserRole?
-
   year          Int?
-
   maxDays       Decimal? @db.Decimal(5,2)
-
   conditionType  LeaveConditionType?
-
   conditionValue Int?
-
   payPercentage  Decimal? @db.Decimal(5,2)
-
   allowsHalfDay  Boolean @default(false)
-
   requiresMedical Boolean @default(false)
-
   requiresApproval Boolean @default(true)
-
   isDiscretionary Boolean @default(false)
-
   createdAt      DateTime @default(now())
 }
 

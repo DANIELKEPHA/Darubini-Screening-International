@@ -1,4 +1,3 @@
-import { LeaveType, UserRole } from "@prisma/client";
 import { LeaveDecision, LeaveEvaluationInput } from "./leave.types";
 
 // Rules
@@ -7,8 +6,8 @@ import { SickLeaveRule } from "./rules/SickLeaveRule";
 import { MaternityLeaveRule } from "./rules/MaternityRule";
 import { PaternityLeaveRule } from "./rules/PaternityRule";
 import { DiscretionaryLeaveRule } from "./rules/DiscretionaryLeaveRule";
-import {EmergencyLeaveRule} from "./rules/EmergencyRule"
-import {CompassionateLeaveRule} from "./rules/CompassionateRule";
+import { EmergencyLeaveRule } from "./rules/EmergencyRule";
+import { CompassionateLeaveRule } from "./rules/CompassionateRule";
 
 export class LeavePolicyEngine {
     constructor(
@@ -19,58 +18,53 @@ export class LeavePolicyEngine {
     ) {}
 
     private ruleRegistry = {
-        [LeaveType.ANNUAL]: AnnualLeaveRule,
-        [LeaveType.SICK]: SickLeaveRule,
-        [LeaveType.MATERNITY]: MaternityLeaveRule,
-        [LeaveType.PATERNITY]: PaternityLeaveRule,
-        [LeaveType.COMPASSIONATE]: CompassionateLeaveRule,
-        [LeaveType.EMERGENCY]: EmergencyLeaveRule,
-        [LeaveType.STUDY]: DiscretionaryLeaveRule,
-        [LeaveType.UNPAID]: DiscretionaryLeaveRule,
-        [LeaveType.OFF_DAY]: DiscretionaryLeaveRule,
-        [LeaveType.PUBLIC_HOLIDAY]: DiscretionaryLeaveRule,
-        [LeaveType.JURY_DUTY]: DiscretionaryLeaveRule,
-        [LeaveType.BEREAVEMENT]: DiscretionaryLeaveRule,
-        [LeaveType.OTHER]: DiscretionaryLeaveRule,
+        ANNUAL: AnnualLeaveRule,
+        SICK: SickLeaveRule,
+        MATERNITY: MaternityLeaveRule,
+        PATERNITY: PaternityLeaveRule,
+        COMPASSIONATE: CompassionateLeaveRule,
+        EMERGENCY: EmergencyLeaveRule,
+        STUDY: DiscretionaryLeaveRule,
+        UNPAID: DiscretionaryLeaveRule,
+        OFF_DAY: DiscretionaryLeaveRule,
+        PUBLIC_HOLIDAY: DiscretionaryLeaveRule,
+        JURY_DUTY: DiscretionaryLeaveRule,
+        BEREAVEMENT: DiscretionaryLeaveRule,
+        OTHER: DiscretionaryLeaveRule,
     };
 
     async evaluate(input: LeaveEvaluationInput): Promise<LeaveDecision> {
+        const year = new Date().getFullYear();
 
-        // 1. Load policy
-        const policy = await this.policyRepo.getPolicy(
-            input.role,
-            new Date().getFullYear()
-        );
-
+        // 1. Load Policy
+        const policy = await this.policyRepo.getPolicy(input.role, year);
         if (!policy) {
-            throw new Error("No leave policy found for role/year");
+            throw new Error(`No leave policy found for role ${input.role} in year ${year}`);
         }
 
-        // 2. Load rules (optional metadata rules)
+        // 2. Load Rules
         const rules = await this.ruleRepo.getRules(input.leaveType);
 
-        // 3. Load balance
-        const leaveBalance = await this.balanceRepo.getBalance(
-            input.userId,
-            new Date().getFullYear()
-        );
+        // 3. Load Balance
+        const leaveBalance = await this.balanceRepo.getBalance(input.userId, year);
+        if (!leaveBalance) {
+            throw new Error("Leave balance not found for this user and year");
+        }
 
-        // 4. Load overlapping requests
+        // 4. Load Overlapping Requests
         const existingRequests = await this.requestRepo.findUserRequests(
             input.userId,
             input.startDate,
             input.endDate
         );
 
-        // 5. Resolve rule
-        const Rule = this.ruleRegistry[input.leaveType];
-
-        if (!Rule) {
+        // 5. Execute Rule
+        const RuleClass = this.ruleRegistry[input.leaveType];
+        if (!RuleClass) {
             throw new Error(`No rule registered for leave type: ${input.leaveType}`);
         }
 
-        // 6. Execute rule
-        return Rule.evaluate({
+        return RuleClass.evaluate({
             input,
             policy,
             rules,
@@ -80,33 +74,19 @@ export class LeavePolicyEngine {
         });
     }
 
-    /**
-     * CORE UTIL: working days calculator
-     */
-    private calculateWorkingDays(
-        startDate: Date,
-        endDate: Date,
-        policy: any
-    ): number {
+    private calculateWorkingDays(startDate: Date, endDate: Date, policy: any): number {
         let count = 0;
-
         const current = new Date(startDate);
 
         while (current <= endDate) {
-
-            const day = current.getDay(); // 0 = Sunday, 6 = Saturday
-
+            const day = current.getDay();
             const isWeekend = day === 0 || day === 6;
 
-            if (policy.includeWeekends) {
-                count++;
-            } else if (!isWeekend) {
+            if (policy.includeWeekends || !isWeekend) {
                 count++;
             }
-
             current.setDate(current.getDate() + 1);
         }
-
         return count;
     }
 }

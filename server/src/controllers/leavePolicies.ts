@@ -104,6 +104,209 @@ export const createOrUpdateLeavePolicies = async (
     }
 };
 
+export const getLeavePoliciesByYear = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { year } = req.params;
+
+        if (!year) {
+            res.status(400).json({ message: "Year is required" });
+            return;
+        }
+
+        const policies = await prisma.leavePolicy.findMany({
+            where: {
+                year: Number(year),
+            },
+            orderBy: {
+                role: "asc",
+            },
+        });
+
+        res.status(200).json({
+            message: "Leave policies fetched successfully",
+            year: Number(year),
+            policies,
+        });
+
+    } catch (error: any) {
+        console.error("getLeavePoliciesByYear error:", error);
+
+        res.status(500).json({
+            message: "Failed to fetch leave policies",
+            error: error.message,
+        });
+    }
+};
+
+export const getLeavePolicy = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { year, role } = req.params;
+
+        if (!year || !role) {
+            res.status(400).json({ message: "Year and role are required" });
+            return;
+        }
+
+        const normalizedRole = normalizeRole(role);
+
+        const policy = await prisma.leavePolicy.findUnique({
+            where: {
+                year_role: {
+                    year: Number(year),
+                    role: normalizedRole,
+                },
+            },
+        });
+
+        if (!policy) {
+            res.status(404).json({ message: "Leave policy not found" });
+            return;
+        }
+
+        res.status(200).json({
+            message: "Leave policy fetched successfully",
+            policy,
+        });
+
+    } catch (error: any) {
+        console.error("getLeavePolicy error:", error);
+
+        res.status(500).json({
+            message: "Failed to fetch leave policy",
+            error: error.message,
+        });
+    }
+};
+
+export const deleteLeavePolicy = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const admin = req.user as any;
+
+        if (!admin || admin.role !== "admin") {
+            res.status(403).json({ message: "Access denied" });
+            return;
+        }
+
+        const { year, role } = req.params;
+
+        if (!year || !role) {
+            res.status(400).json({ message: "Year and role are required" });
+            return;
+        }
+
+        const normalizedRole = normalizeRole(role);
+
+        const existing = await prisma.leavePolicy.findUnique({
+            where: {
+                year_role: {
+                    year: Number(year),
+                    role: normalizedRole,
+                },
+            },
+        });
+
+        if (!existing) {
+            res.status(404).json({ message: "Leave policy not found" });
+            return;
+        }
+
+        await prisma.leavePolicy.delete({
+            where: {
+                year_role: {
+                    year: Number(year),
+                    role: normalizedRole,
+                },
+            },
+        });
+
+        res.status(200).json({
+            message: "Leave policy deleted successfully",
+        });
+
+    } catch (error: any) {
+        console.error("deleteLeavePolicy error:", error);
+
+        res.status(500).json({
+            message: "Failed to delete leave policy",
+            error: error.message,
+        });
+    }
+};
+
+export const updateLeavePolicy = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const admin = req.user as any;
+
+        if (!admin || admin.role !== "admin") {
+            res.status(403).json({ message: "Access denied" });
+            return;
+        }
+
+        const { year, role } = req.params;
+
+        if (!year || !role) {
+            res.status(400).json({ message: "Year and role are required" });
+            return;
+        }
+
+        const normalizedRole = normalizeRole(role);
+
+        const existing = await prisma.leavePolicy.findUnique({
+            where: {
+                year_role: {
+                    year: Number(year),
+                    role: normalizedRole,
+                },
+            },
+        });
+
+        if (!existing) {
+            res.status(404).json({
+                message: "Leave policy not found",
+            });
+            return;
+        }
+
+        const data = req.body;
+
+        const updated = await prisma.leavePolicy.update({
+            where: {
+                year_role: {
+                    year: Number(year),
+                    role: normalizedRole,
+                },
+            },
+            data: {
+                annualLeaveDays: data.annualLeaveDays ?? existing.annualLeaveDays,
+                sickLeaveDays: data.sickLeaveDays ?? existing.sickLeaveDays,
+                compassionateDays: data.compassionateDays ?? existing.compassionateDays,
+                maternityDays: data.maternityDays ?? existing.maternityDays,
+                paternityDays: data.paternityDays ?? existing.paternityDays,
+                emergencyDays: data.emergencyDays ?? existing.emergencyDays,
+                studyLeaveDays: data.studyLeaveDays ?? existing.studyLeaveDays,
+                unpaidLeaveAllowed: data.unpaidLeaveAllowed ?? existing.unpaidLeaveAllowed,
+                workingDaysPerWeek: data.workingDaysPerWeek ?? existing.workingDaysPerWeek,
+                includeWeekends: data.includeWeekends ?? existing.includeWeekends,
+                excludeHolidays: data.excludeHolidays ?? existing.excludeHolidays,
+                updatedAt: new Date(),
+            },
+        });
+
+        res.status(200).json({
+            message: "Leave policy updated successfully",
+            policy: updated,
+        });
+
+    } catch (error: any) {
+        console.error("updateLeavePolicy error:", error);
+
+        res.status(500).json({
+            message: "Failed to update leave policy",
+            error: error.message,
+        });
+    }
+};
+
 export const initializeLeaveBalances = async (
     req: Request,
     res: Response

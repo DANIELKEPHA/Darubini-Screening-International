@@ -45,7 +45,7 @@ export interface LeaveEvaluationInput {
     userId: string;
     role: UserRole;
     leaveType: LeaveType;
-
+    otherLeaveType?: string;
     startDate: Date;
     endDate: Date;
 

@@ -1,6 +1,10 @@
 import { PrismaClient, Prisma, LeaveStatus, LeaveType, UserRole as PrismaUserRole } from "@prisma/client";
 import { Request, Response } from "express";
 import {LeavePolicyEngine} from "../leave/policy-engine/LeavePolicyEngine";
+import {LeavePolicyRepository} from "../repositories/LeavePolicyRepository";
+import {LeaveBalanceRepository} from "../repositories/LeaveBalanceRepository";
+import {LeavePolicyRuleRepository} from "../repositories/LeavePolicyRuleRepository";
+import {LeaveRequestRepository} from "../repositories/LeaveRequestRepository";
 
 const prisma = new PrismaClient();
 
@@ -47,152 +51,108 @@ export const createLeaveRequest = async (
     req: Request,
     res: Response
 ): Promise<void> => {
-
     try {
         const user = req.user as any;
+        if (!user?.id) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
         const role = normalizeRole(user.role);
 
-        const {
-            leaveType,
-            otherLeaveType,
-            startDate,
-            endDate,
-            reason,
-        } = req.body;
+        const { leaveType, otherLeaveType, startDate, endDate, reason } = req.body;
 
-        if (!startDate || !endDate || !leaveType) {
-            res.status(400).json({ message: "Missing required fields" });
+        if (!leaveType || !startDate || !endDate) {
+            res.status(400).json({
+                message: "Missing required fields: leaveType, startDate, endDate"
+            });
             return;
         }
 
         const start = new Date(startDate);
         const end = new Date(endDate);
-
-        if (start > end) {
-            res.status(400).json({
-                message: "Start date cannot be after end date",
-            });
-            return;
-        }
-
         const year = new Date().getFullYear();
 
-        const policy = await prisma.leavePolicy.findUnique({
-            where: {
-                year_role: {
-                    year,
-                    role,
-                },
-            },
-        });
-
-        if (!policy) {
-            res.status(404).json({
-                message: "Leave policy not found for user role",
-            });
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+            res.status(400).json({ message: "Invalid date range" });
             return;
         }
 
-        const leaveBalance = await prisma.leaveBalance.findUnique({
-            where: {
-                cognitoId_year: {
-                    cognitoId: user.id,
-                    year,
-                },
-            },
-        });
+        const policyRepo = new LeavePolicyRepository(prisma);
+        const ruleRepo = new LeavePolicyRuleRepository(prisma);
+        const balanceRepo = new LeaveBalanceRepository(prisma);
+        const requestRepo = new LeaveRequestRepository(prisma);
 
-        if (!leaveBalance) {
-            res.status(404).json({
-                message: "Leave balance not found",
-            });
-            return;
-        }
-
-        // 3. Get existing requests (for overlap checks inside engine)
-        const existingRequests = await prisma.leaveRequest.findMany({
-            where: {
-                requesterCognitoId: user.id,
-                status: {
-                    not: "REJECTED",
-                },
-            },
-        });
-
-        const engine = new LeavePolicyEngine(
-            prisma.leavePolicy,
-            prisma.leavePolicyRule,
-            prisma.leaveBalance,
-            prisma.leaveLedger
-        );
+        const engine = new LeavePolicyEngine(policyRepo, ruleRepo, balanceRepo, requestRepo);
 
         const decision = await engine.evaluate({
             userId: user.id,
             role,
             leaveType,
+            otherLeaveType: leaveType === "OTHER" ? otherLeaveType : undefined,
             startDate: start,
             endDate: end,
             reason,
             serviceYears: user.serviceYears ?? 0,
         });
 
-        // 5. Reject early if not allowed
         if (!decision.allowed) {
             res.status(400).json({
-                message: decision.reason || "Leave request not allowed",
+                message: decision.reason || "Leave request not allowed by policy",
                 decision,
             });
             return;
         }
 
-        // 6. Create leave request (clean, no logic)
-        const leaveRequest = await prisma.leaveRequest.create({
-            data: {
-                requesterCognitoId: user.id,
-                requesterRole: role,
+        const leaveBalance = await balanceRepo.getBalance(user.id, year);
 
-                leaveType,
-                otherLeaveType:
-                    leaveType === "OTHER"
-                        ? otherLeaveType
-                        : null,
+        if (!leaveBalance) {
+            res.status(404).json({
+                message: "Leave balance not found for this year. Please contact admin to initialize balances."
+            });
+            return;
+        }
 
-                startDate: start,
-                endDate: end,
+        const leaveRequest = await prisma.$transaction(async (tx) => {
+            const createdRequest = await tx.leaveRequest.create({
+                data: {
+                    requesterCognitoId: user.id,
+                    requesterRole: role,
+                    leaveType,
+                    otherLeaveType: leaveType === "OTHER" ? otherLeaveType : null,
+                    startDate: start,
+                    endDate: end,
+                    daysRequested: decision.chargeableDays,
+                    totalWorkingDays: decision.chargeableDays,
+                    reason: reason || null,
+                    status: "PENDING",
+                    leaveBalanceId: leaveBalance.id,
+                },
+            });
 
-                daysRequested: decision.chargeableDays,
-                totalWorkingDays: decision.chargeableDays,
+            await createAuditLog(
+                "CREATE_LEAVE_REQUEST",
+                createdRequest.id.toString(),
+                role,
+                user.id,
+                {
+                    leaveType,
+                    daysRequested: decision.chargeableDays,
+                    startDate: start.toISOString(),
+                    endDate: end.toISOString(),
+                },
+            );
 
-                reason,
-
-                status: "PENDING",
-
-                leaveBalanceId: leaveBalance.id,
-            },
+            return createdRequest;
         });
 
-        // 7. Audit log (unchanged responsibility)
-        await createAuditLog(
-            "CREATE_LEAVE_REQUEST",
-            leaveRequest.id.toString(),
-            role,
-            user.id,
-            {
-                leaveType,
-                daysRequested: decision.chargeableDays,
-            }
-        );
-
-        // 8. Response
         res.status(201).json({
-            message: "Leave request created successfully",
+            message: "Leave request created successfully and pending approval",
             request: leaveRequest,
             decision,
         });
-
     } catch (error: any) {
         console.error("Create leave request error:", error);
-
         res.status(500).json({
             message: "Failed to create leave request",
             error: error.message,

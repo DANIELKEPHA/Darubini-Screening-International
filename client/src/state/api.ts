@@ -3655,6 +3655,36 @@ export const api = createApi({
             },
         }),
 
+        initializeLeaveBalances: build.mutation<
+            {
+                success: boolean;
+                message: string;
+                year: number;
+                summary: {
+                    totalUsers: number;
+                    created: number;
+                    updated: number;
+                    skipped: number;
+                };
+            },
+            { year: number }
+        >({
+            query: (body) => ({
+                url: "leave-policies/initialize-balances",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["LeaveBalance"],
+            async onQueryStarted({ year }, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: `Initializing leave balances for year ${year}...`,
+                    success: `Leave balances for ${year} initialized successfully`,
+                    error: (err: any) =>
+                        err?.data?.message || "Failed to initialize leave balances",
+                });
+            },
+        }),
+
         getUserLeaveData: build.query<
             {
                 user: {
@@ -4853,6 +4883,7 @@ export const {
     useValidateQRCodeMutation,
     useGenerateQRCodeMutation,
     useCreateOrUpdateLeavePoliciesMutation,
+    useInitializeLeaveBalancesMutation,
     useGetUserLeaveDataQuery,
     useCreateLeaveRequestMutation,
     useGetMyLeaveRequestsQuery,

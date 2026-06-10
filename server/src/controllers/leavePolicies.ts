@@ -424,17 +424,25 @@ export const initializeLeaveBalances = async (
                     data: {
                         role: user.role,
 
-                        annualEntitled:
-                        policy.annualLeaveDays,
+                        annualEntitled: policy.annualLeaveDays,
+                        annualRemaining:
+                            Number(policy.annualLeaveDays) -
+                            Number(existingBalance.annualUsed),
 
-                        sickEntitled:
-                        policy.sickLeaveDays,
+                        sickEntitled: policy.sickLeaveDays,
+                        sickRemaining:
+                            Number(policy.sickLeaveDays) -
+                            Number(existingBalance.sickUsed),
 
-                        compassionateEntitled:
-                        policy.compassionateDays,
+                        compassionateEntitled: policy.compassionateDays,
+                        compassionateRemaining:
+                            Number(policy.compassionateDays) -
+                            Number(existingBalance.compassionateUsed),
 
-                        emergencyEntitled:
-                        policy.emergencyDays,
+                        emergencyEntitled: policy.emergencyDays,
+                        emergencyRemaining:
+                            Number(policy.emergencyDays) -
+                            Number(existingBalance.emergencyUsed),
                     },
                 });
 

@@ -720,25 +720,33 @@ export const getUserLeaveBalance = async (
                 annual: {
                     entitled: balance.annualEntitled,
                     used: balance.annualUsed,
-                    remaining: balance.annualRemaining,
+                    remaining:
+                        Number(balance.annualEntitled) -
+                        Number(balance.annualUsed),
                 },
 
                 sick: {
                     entitled: balance.sickEntitled,
                     used: balance.sickUsed,
-                    remaining: balance.sickRemaining,
+                    remaining:
+                        Number(balance.sickEntitled) -
+                        Number(balance.sickUsed),
                 },
 
                 compassionate: {
                     entitled: balance.compassionateEntitled,
                     used: balance.compassionateUsed,
-                    remaining: balance.compassionateRemaining,
+                    remaining:
+                        Number(balance.compassionateEntitled) -
+                        Number(balance.compassionateUsed),
                 },
 
                 emergency: {
                     entitled: balance.emergencyEntitled,
                     used: balance.emergencyUsed,
-                    remaining: balance.emergencyRemaining,
+                    remaining:
+                        Number(balance.emergencyEntitled) -
+                        Number(balance.emergencyUsed),
                 },
 
                 isLocked: balance.isLocked,

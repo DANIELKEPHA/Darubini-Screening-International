@@ -427,8 +427,6 @@ export enum ClientName {
 
 export type AccountStatus = 'ACTIVE' | 'FROZEN' | 'CLOSED';
 
-// ======================== MAIN ENTITIES ========================
-
 export interface ClientExpense {
     id: number;
     referenceNumber?: string | null;

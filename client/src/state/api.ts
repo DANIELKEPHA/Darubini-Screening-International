@@ -3622,7 +3622,7 @@ export const api = createApi({
             {
                 year: number;
                 policies: {
-                    role: "ADMIN" | "ACCOUNTS" | "STAFF";
+                    role: UserRole;
                     annualLeaveDays?: number;
                     sickLeaveDays?: number;
                     compassionateDays?: number;
@@ -3642,7 +3642,6 @@ export const api = createApi({
                 method: "POST",
                 body,
             }),
-
             invalidatesTags: ["LeavePolicy"],
 
             async onQueryStarted(_, { queryFulfilled }) {
@@ -3651,6 +3650,78 @@ export const api = createApi({
                     success: "Leave policies saved successfully",
                     error: (err: any) =>
                         err?.data?.message || "Failed to save leave policies",
+                });
+            },
+        }),
+
+        getLeavePoliciesByYear: build.query<
+            {
+                message: string;
+                year: number;
+                policies: LeavePolicy[];
+            },
+            number
+        >({
+            query: (year) => `leave-policies/${year}`,
+            providesTags: ["LeavePolicy"],
+        }),
+
+        getLeavePolicy: build.query<
+            {
+                message: string;
+                policy: LeavePolicy;
+            },
+            { year: number; role: UserRole }
+        >({
+            query: ({ year, role }) =>
+                `leave-policies/${year}/${role}`,
+            providesTags: ["LeavePolicy"],
+        }),
+
+        updateLeavePolicy: build.mutation<
+            {
+                message: string;
+                policy: LeavePolicy;
+            },
+            {
+                year: number;
+                role: UserRole;
+                data: Partial<LeavePolicy>;
+            }
+        >({
+            query: ({ year, role, data }) => ({
+                url: `leave-policies/${year}/${role}`,
+                method: "PATCH",
+                body: data,
+            }),
+            invalidatesTags: ["LeavePolicy"],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Updating policy...",
+                    success: "Policy updated successfully",
+                    error: (err: any) =>
+                        err?.data?.message || "Update failed",
+                });
+            },
+        }),
+
+        deleteLeavePolicy: build.mutation<
+            { message: string },
+            { year: number; role: UserRole }
+        >({
+            query: ({ year, role }) => ({
+                url: `leave-policies/${year}/${role}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: ["LeavePolicy"],
+
+            async onQueryStarted(_, { queryFulfilled }) {
+                await withToast(queryFulfilled, {
+                    pending: "Deleting policy...",
+                    success: "Policy deleted successfully",
+                    error: (err: any) =>
+                        err?.data?.message || "Delete failed",
                 });
             },
         }),
@@ -4884,6 +4955,10 @@ export const {
     useGenerateQRCodeMutation,
     useCreateOrUpdateLeavePoliciesMutation,
     useInitializeLeaveBalancesMutation,
+    useGetLeavePoliciesByYearQuery,
+    useGetLeavePolicyQuery,
+    useUpdateLeavePolicyMutation,
+    useDeleteLeavePolicyMutation,
     useGetUserLeaveDataQuery,
     useCreateLeaveRequestMutation,
     useGetMyLeaveRequestsQuery,

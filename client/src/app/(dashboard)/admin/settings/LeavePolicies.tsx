@@ -1,7 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useCreateOrUpdateLeavePoliciesMutation, useInitializeLeaveBalancesMutation } from '@/state';
+import React, { useState, useEffect } from 'react';
+import {
+  useCreateOrUpdateLeavePoliciesMutation,
+  useInitializeLeaveBalancesMutation,
+  useGetLeavePoliciesByYearQuery,
+  useGetLeavePolicyQuery,
+  useUpdateLeavePolicyMutation,
+  useDeleteLeavePolicyMutation
+} from '@/state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,10 +16,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Loader2, Save, Users, Calendar } from 'lucide-react';
+import { Loader2, Save, Users, Calendar, Trash2, Edit, Download, Upload, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-const roles = ["ADMIN", "ACCOUNTS", "STAFF"] as const;
+type UserRole = "admin" | "user" | "accounts" | "staff";
+const roles: UserRole[] = ["admin", "accounts", "staff"];
 
 const defaultRow = {
   annualLeaveDays: 21,
@@ -30,17 +38,92 @@ const defaultRow = {
 
 const LeavePolicies = () => {
   const [year, setYear] = useState(new Date().getFullYear());
-  const [activeRole, setActiveRole] = useState<typeof roles[number]>("ADMIN");
+  const [activeRole, setActiveRole] = useState<UserRole>("admin");
   const [policies, setPolicies] = useState<Record<string, any>>({
-    ADMIN: { ...defaultRow },
-    ACCOUNTS: { ...defaultRow },
-    STAFF: { ...defaultRow },
+    admin: { ...defaultRow },
+    accounts: { ...defaultRow },
+    staff: { ...defaultRow },
   });
+  const [isEditing, setIsEditing] = useState(false);
+
+  const {
+    data: allPoliciesData,
+    isLoading: isLoadingPolicies,
+    refetch: refetchAllPolicies
+  } = useGetLeavePoliciesByYearQuery(year, {
+    skip: !year,
+  });
+
+  const {
+    data: singlePolicyData,
+    isLoading: isLoadingSinglePolicy,
+    refetch: refetchSinglePolicy
+  } = useGetLeavePolicyQuery(
+      { year, role: activeRole },
+      { skip: !year || !activeRole }
+  );
 
   const [savePolicies, { isLoading: isSaving }] = useCreateOrUpdateLeavePoliciesMutation();
   const [initializeBalances, { isLoading: isInitializing }] = useInitializeLeaveBalancesMutation();
+  const [updatePolicy, { isLoading: isUpdating }] = useUpdateLeavePolicyMutation();
+  const [deletePolicy, { isLoading: isDeleting }] = useDeleteLeavePolicyMutation();
 
-  const updateField = (role: string, field: string, value: any) => {
+  // Load existing policies when data is fetched
+  useEffect(() => {
+    if (allPoliciesData?.policies) {
+      const loadedPolicies: Record<string, any> = {};
+      allPoliciesData.policies.forEach((policy: any) => {
+        // Convert role to lowercase when storing in state
+        const roleKey = policy.role.toLowerCase();
+        loadedPolicies[roleKey] = {
+          annualLeaveDays: policy.annualLeaveDays ?? defaultRow.annualLeaveDays,
+          sickLeaveDays: policy.sickLeaveDays ?? defaultRow.sickLeaveDays,
+          compassionateDays: policy.compassionateDays ?? defaultRow.compassionateDays,
+          maternityDays: policy.maternityDays ?? defaultRow.maternityDays,
+          paternityDays: policy.paternityDays ?? defaultRow.paternityDays,
+          emergencyDays: policy.emergencyDays ?? defaultRow.emergencyDays,
+          studyLeaveDays: policy.studyLeaveDays ?? defaultRow.studyLeaveDays,
+          unpaidLeaveAllowed: policy.unpaidLeaveAllowed ?? defaultRow.unpaidLeaveAllowed,
+          workingDaysPerWeek: policy.workingDaysPerWeek ?? defaultRow.workingDaysPerWeek,
+          includeWeekends: policy.includeWeekends ?? defaultRow.includeWeekends,
+          excludeHolidays: policy.excludeHolidays ?? defaultRow.excludeHolidays,
+        };
+      });
+
+      roles.forEach(role => {
+        if (!loadedPolicies[role]) {
+          loadedPolicies[role] = { ...defaultRow };
+        }
+      });
+
+      setPolicies(loadedPolicies);
+    }
+  }, [allPoliciesData]);
+
+  // Load single policy when role changes
+  useEffect(() => {
+    if (singlePolicyData?.policy) {
+      const policy = singlePolicyData.policy;
+      setPolicies(prev => ({
+        ...prev,
+        [activeRole]: {
+          annualLeaveDays: policy.annualLeaveDays ?? defaultRow.annualLeaveDays,
+          sickLeaveDays: policy.sickLeaveDays ?? defaultRow.sickLeaveDays,
+          compassionateDays: policy.compassionateDays ?? defaultRow.compassionateDays,
+          maternityDays: policy.maternityDays ?? defaultRow.maternityDays,
+          paternityDays: policy.paternityDays ?? defaultRow.paternityDays,
+          emergencyDays: policy.emergencyDays ?? defaultRow.emergencyDays,
+          studyLeaveDays: policy.studyLeaveDays ?? defaultRow.studyLeaveDays,
+          unpaidLeaveAllowed: policy.unpaidLeaveAllowed ?? defaultRow.unpaidLeaveAllowed,
+          workingDaysPerWeek: policy.workingDaysPerWeek ?? defaultRow.workingDaysPerWeek,
+          includeWeekends: policy.includeWeekends ?? defaultRow.includeWeekends,
+          excludeHolidays: policy.excludeHolidays ?? defaultRow.excludeHolidays,
+        }
+      }));
+    }
+  }, [singlePolicyData, activeRole]);
+
+  const updateField = (role: UserRole, field: string, value: any) => {
     setPolicies((prev) => ({
       ...prev,
       [role]: {
@@ -55,22 +138,64 @@ const LeavePolicies = () => {
       const payload = {
         year,
         policies: roles.map((role) => ({
-          role,
+          role: role.toUpperCase(), // Send role in UPPERCASE to match backend
           ...policies[role],
         })),
       };
 
       await savePolicies(payload).unwrap();
       toast.success(`Leave policies for ${year} saved successfully`);
+      setIsEditing(false);
+      refetchAllPolicies();
     } catch (error: any) {
       toast.error(error?.data?.message || "Failed to save policies");
+    }
+  };
+
+  const handleUpdateSinglePolicy = async () => {
+    try {
+      const currentPolicy = policies[activeRole];
+      await updatePolicy({
+        year,
+        role: activeRole, // This will be lowercase, but your API might expect uppercase
+        data: currentPolicy
+      }).unwrap();
+      toast.success(`${activeRole.toUpperCase()} policy updated successfully`);
+      setIsEditing(false);
+      refetchSinglePolicy();
+      refetchAllPolicies();
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to update policy");
+    }
+  };
+
+  const handleDeletePolicy = async () => {
+    try {
+      await deletePolicy({
+        year,
+        role: activeRole // This will be lowercase, but your API might expect uppercase
+      }).unwrap();
+      toast.success(`${activeRole.toUpperCase()} policy deleted successfully`);
+      updateField(activeRole, 'annualLeaveDays', defaultRow.annualLeaveDays);
+      updateField(activeRole, 'sickLeaveDays', defaultRow.sickLeaveDays);
+      updateField(activeRole, 'compassionateDays', defaultRow.compassionateDays);
+      updateField(activeRole, 'maternityDays', defaultRow.maternityDays);
+      updateField(activeRole, 'paternityDays', defaultRow.paternityDays);
+      updateField(activeRole, 'emergencyDays', defaultRow.emergencyDays);
+      updateField(activeRole, 'studyLeaveDays', defaultRow.studyLeaveDays);
+      updateField(activeRole, 'unpaidLeaveAllowed', defaultRow.unpaidLeaveAllowed);
+      updateField(activeRole, 'workingDaysPerWeek', defaultRow.workingDaysPerWeek);
+      updateField(activeRole, 'includeWeekends', defaultRow.includeWeekends);
+      updateField(activeRole, 'excludeHolidays', defaultRow.excludeHolidays);
+      refetchAllPolicies();
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to delete policy");
     }
   };
 
   const handleInitializeBalances = async () => {
     try {
       const result = await initializeBalances({ year }).unwrap();
-
       toast.success(
           `Leave balances initialized for ${year}`,
           {
@@ -82,12 +207,49 @@ const LeavePolicies = () => {
     }
   };
 
+  const exportPolicies = () => {
+    const dataStr = JSON.stringify(policies, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = `leave-policies-${year}.json`;
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
+  const importPolicies = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target?.result as string);
+          setPolicies(prev => ({
+            ...prev,
+            ...imported
+          }));
+          toast.success("Policies imported successfully");
+        } catch (error) {
+          toast.error("Failed to parse imported file");
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
   const currentPolicy = policies[activeRole];
+  // FIX: Convert both to lowercase for comparison
+  const hasExistingPolicy = allPoliciesData?.policies?.some(
+      p => p.role.toLowerCase() === activeRole
+  );
+
+  const formatRoleName = (role: string) => {
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  };
 
   return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto space-y-8">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Leave Management</h1>
@@ -99,10 +261,26 @@ const LeavePolicies = () => {
                 <Input
                     type="number"
                     value={year}
-                    onChange={(e) => setYear(Number(e.target.value))}
+                    onChange={(e) => {
+                      setYear(Number(e.target.value));
+                      setIsEditing(false);
+                    }}
                     className="w-28 text-center font-semibold"
                 />
               </div>
+              <Button variant="outline" onClick={exportPolicies} size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <label>
+                <Button variant="outline" size="sm" asChild>
+                <span>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import
+                </span>
+                </Button>
+                <input type="file" accept=".json" onChange={importPolicies} className="hidden" />
+              </label>
             </div>
           </div>
 
@@ -112,95 +290,213 @@ const LeavePolicies = () => {
               <TabsTrigger value="balances">Initialize Balances</TabsTrigger>
             </TabsList>
 
-            {/* ==================== POLICIES TAB ==================== */}
             <TabsContent value="policies">
               <Card>
                 <CardHeader>
-                  <CardTitle>Leave Policies by Role</CardTitle>
-                  <CardDescription>
-                    Define annual leave entitlements for each role. Changes apply to the selected year.
-                  </CardDescription>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>Leave Policies by Role</CardTitle>
+                      <CardDescription>
+                        Define annual leave entitlements for each role. Changes apply to the selected year.
+                      </CardDescription>
+                    </div>
+                    {isLoadingPolicies && (
+                        <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Role Tabs */}
-                  <div className="flex flex-wrap gap-2">
-                    {roles.map((role) => (
-                        <button
-                            key={role}
-                            onClick={() => setActiveRole(role)}
-                            className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
-                                activeRole === role
-                                    ? "bg-blue-600 text-white shadow-sm"
-                                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                            }`}
-                        >
-                          {role}
-                        </button>
-                    ))}
-                  </div>
-
-                  {/* Policy Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Object.keys(defaultRow).map((field) => {
-                      const value = currentPolicy[field];
-                      const isBoolean = typeof value === "boolean";
-
-                      return (
-                          <div key={field} className="space-y-2">
-                            <Label className="text-sm font-medium capitalize">
-                              {field.replace(/([A-Z])/g, ' $1')}
-                            </Label>
-                            {isBoolean ? (
-                                <div className="flex items-center gap-3">
-                                  <Switch
-                                      checked={value}
-                                      onCheckedChange={(checked) => updateField(activeRole, field, checked)}
-                                  />
-                                  <span className="text-sm text-gray-600">
-                              {value ? "Enabled" : "Disabled"}
-                            </span>
-                                </div>
-                            ) : (
-                                <Input
-                                    type="number"
-                                    value={value ?? ""}
-                                    onChange={(e) => {
-                                      const num = e.target.value === "" ? null : Number(e.target.value);
-                                      updateField(activeRole, field, num);
-                                    }}
-                                    className="w-full"
-                                />
+                  <div className="flex flex-wrap gap-2 justify-between items-center">
+                    <div className="flex flex-wrap gap-2">
+                      {roles.map((role) => (
+                          <button
+                              key={role}
+                              onClick={() => {
+                                setActiveRole(role);
+                                setIsEditing(false);
+                              }}
+                              className={`px-6 py-2.5 rounded-lg font-medium transition-all relative ${
+                                  activeRole === role
+                                      ? "bg-blue-600 text-white shadow-sm"
+                                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                              }`}
+                          >
+                            {formatRoleName(role)}
+                            {/* FIX: Convert to lowercase for comparison */}
+                            {allPoliciesData?.policies?.some(p => p.role.toLowerCase() === role) && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></span>
                             )}
-                          </div>
-                      );
-                    })}
+                          </button>
+                      ))}
+                    </div>
+
+                    {hasExistingPolicy && !isEditing && (
+                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Policy
+                        </Button>
+                    )}
                   </div>
 
-                  {/* Save Button */}
-                  <div className="flex justify-end pt-4 border-t">
-                    <Button
-                        onClick={handleSavePolicies}
-                        disabled={isSaving}
-                        size="lg"
-                    >
-                      {isSaving ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving Policies...
-                          </>
-                      ) : (
-                          <>
-                            <Save className="mr-2 h-4 w-4" />
-                            Save Policies for {year}
-                          </>
-                      )}
-                    </Button>
-                  </div>
+                  {isLoadingSinglePolicy && (
+                      <div className="flex justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+                      </div>
+                  )}
+
+                  {!isLoadingSinglePolicy && (
+                      <>
+                        {hasExistingPolicy && !isEditing && (
+                            <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                              <div className="flex items-start gap-3">
+                                <AlertCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                                <div>
+                                  <p className="text-sm font-medium text-green-800">
+                                    Existing Policy Loaded
+                                  </p>
+                                  <p className="text-sm text-green-700">
+                                    A policy for {formatRoleName(activeRole)} already exists for {year}.
+                                    Click Edit to modify or delete it.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                        )}
+
+                        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${!isEditing && hasExistingPolicy ? 'opacity-75' : ''}`}>
+                          {Object.keys(defaultRow).map((field) => {
+                            const value = currentPolicy[field];
+                            const isBoolean = typeof value === "boolean";
+                            const isReadOnly = hasExistingPolicy && !isEditing;
+
+                            return (
+                                <div key={field} className="space-y-2">
+                                  <Label className="text-sm font-medium capitalize">
+                                    {field.replace(/([A-Z])/g, ' $1')}
+                                  </Label>
+                                  {isBoolean ? (
+                                      <div className="flex items-center gap-3">
+                                        <Switch
+                                            checked={value}
+                                            onCheckedChange={(checked) => !isReadOnly && updateField(activeRole, field, checked)}
+                                            disabled={isReadOnly}
+                                        />
+                                        <span className="text-sm text-gray-600">
+                                  {value ? "Enabled" : "Disabled"}
+                                </span>
+                                      </div>
+                                  ) : (
+                                      <Input
+                                          type="number"
+                                          value={value ?? ""}
+                                          onChange={(e) => {
+                                            const num = e.target.value === "" ? null : Number(e.target.value);
+                                            if (!isReadOnly) updateField(activeRole, field, num);
+                                          }}
+                                          className="w-full"
+                                          disabled={isReadOnly}
+                                      />
+                                  )}
+                                </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t">
+                          {isEditing || !hasExistingPolicy ? (
+                              <>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setIsEditing(false);
+                                      if (singlePolicyData?.policy) {
+                                        const policy = singlePolicyData.policy;
+                                        updateField(activeRole, 'annualLeaveDays', policy.annualLeaveDays ?? defaultRow.annualLeaveDays);
+                                        updateField(activeRole, 'sickLeaveDays', policy.sickLeaveDays ?? defaultRow.sickLeaveDays);
+                                        updateField(activeRole, 'compassionateDays', policy.compassionateDays ?? defaultRow.compassionateDays);
+                                        updateField(activeRole, 'maternityDays', policy.maternityDays ?? defaultRow.maternityDays);
+                                        updateField(activeRole, 'paternityDays', policy.paternityDays ?? defaultRow.paternityDays);
+                                        updateField(activeRole, 'emergencyDays', policy.emergencyDays ?? defaultRow.emergencyDays);
+                                        updateField(activeRole, 'studyLeaveDays', policy.studyLeaveDays ?? defaultRow.studyLeaveDays);
+                                        updateField(activeRole, 'unpaidLeaveAllowed', policy.unpaidLeaveAllowed ?? defaultRow.unpaidLeaveAllowed);
+                                        updateField(activeRole, 'workingDaysPerWeek', policy.workingDaysPerWeek ?? defaultRow.workingDaysPerWeek);
+                                        updateField(activeRole, 'includeWeekends', policy.includeWeekends ?? defaultRow.includeWeekends);
+                                        updateField(activeRole, 'excludeHolidays', policy.excludeHolidays ?? defaultRow.excludeHolidays);
+                                      } else {
+                                        updateField(activeRole, 'annualLeaveDays', defaultRow.annualLeaveDays);
+                                      }
+                                    }}
+                                >
+                                  Cancel
+                                </Button>
+
+                                <Button
+                                    onClick={hasExistingPolicy ? handleUpdateSinglePolicy : handleSavePolicies}
+                                    disabled={isSaving || isUpdating}
+                                >
+                                  {(isSaving || isUpdating) ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        {hasExistingPolicy ? "Updating..." : "Saving..."}
+                                      </>
+                                  ) : (
+                                      <>
+                                        <Save className="mr-2 h-4 w-4" />
+                                        {hasExistingPolicy ? `Update ${formatRoleName(activeRole)} Policy` : `Save ${formatRoleName(activeRole)} Policy`}
+                                      </>
+                                  )}
+                                </Button>
+
+                                {hasExistingPolicy && (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" disabled={isDeleting}>
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Delete
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete Policy?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete the {formatRoleName(activeRole)} policy for {year}?
+                                            This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction onClick={handleDeletePolicy}>
+                                            Yes, Delete Policy
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                )}
+                              </>
+                          ) : (
+                              hasExistingPolicy && (
+                                  <Button onClick={handleSavePolicies} disabled={isSaving} size="lg">
+                                    {isSaving ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Saving All Policies...
+                                        </>
+                                    ) : (
+                                        <>
+                                          <Save className="mr-2 h-4 w-4" />
+                                          Save All Policies for {year}
+                                        </>
+                                    )}
+                                  </Button>
+                              )
+                          )}
+                        </div>
+                      </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* ==================== INITIALIZE BALANCES TAB ==================== */}
             <TabsContent value="balances">
               <Card>
                 <CardHeader>
@@ -224,11 +520,7 @@ const LeavePolicies = () => {
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button
-                          size="lg"
-                          className="w-full md:w-auto"
-                          disabled={isInitializing}
-                      >
+                      <Button size="lg" className="w-full md:w-auto" disabled={isInitializing}>
                         {isInitializing ? (
                             <>
                               <Loader2 className="mr-2 h-5 w-5 animate-spin" />

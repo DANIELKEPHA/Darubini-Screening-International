@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { format } from 'date-fns';
+import React, {useState} from 'react';
+import {format} from 'date-fns';
 import {
     useGetLeaveRequestsQuery,
     useApproveLeaveRequestMutation,
     useRejectLeaveRequestMutation,
     useGetLeaveBalanceQuery
 } from "@/state";
-import { Search, Eye } from 'lucide-react';
+import {Search, Eye} from 'lucide-react';
 
 const AdminLeaveManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -18,11 +18,11 @@ const AdminLeaveManagement = () => {
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [remarks, setRemarks] = useState('');
 
-    const { data: requestsData, isLoading } = useGetLeaveRequestsQuery({});
-    const { data: summary } = useGetLeaveBalanceQuery();
+    const {data: requestsData, isLoading} = useGetLeaveRequestsQuery({});
+    const {data: summary} = useGetLeaveBalanceQuery();
 
-    const [approveLeave, { isLoading: approving }] = useApproveLeaveRequestMutation();
-    const [rejectLeave, { isLoading: rejecting }] = useRejectLeaveRequestMutation();
+    const [approveLeave, {isLoading: approving}] = useApproveLeaveRequestMutation();
+    const [rejectLeave, {isLoading: rejecting}] = useRejectLeaveRequestMutation();
 
     const requests = requestsData?.data || [];
 
@@ -52,7 +52,6 @@ const AdminLeaveManagement = () => {
 
         await approveLeave({
             leaveRequestId: request.id,
-            approvalId: request.approvals?.[0]?.id, // IMPORTANT: backend expects this
             comments: remarks
         });
 
@@ -65,7 +64,6 @@ const AdminLeaveManagement = () => {
 
         await rejectLeave({
             leaveRequestId: request.id,
-            approvalId: request.approvals?.[0]?.id,
             comments: remarks
         });
 
@@ -75,10 +73,14 @@ const AdminLeaveManagement = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'APPROVED': return 'bg-green-100 text-green-700';
-            case 'REJECTED': return 'bg-red-100 text-red-700';
-            case 'PENDING': return 'bg-yellow-100 text-yellow-700';
-            default: return 'bg-gray-100 text-gray-700';
+            case 'APPROVED':
+                return 'bg-green-100 text-green-700';
+            case 'REJECTED':
+                return 'bg-red-100 text-red-700';
+            case 'PENDING':
+                return 'bg-yellow-100 text-yellow-700';
+            default:
+                return 'bg-gray-100 text-gray-700';
         }
     };
 
@@ -123,7 +125,7 @@ const AdminLeaveManagement = () => {
             {/* Filters */}
             <div className="flex gap-3 bg-white p-4 rounded-xl border">
                 <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                    <Search className="absolute left-3 top-3 text-gray-400" size={18}/>
                     <input
                         className="w-full pl-10 p-2 border rounded-lg"
                         placeholder="Search employee or reason..."
@@ -132,14 +134,16 @@ const AdminLeaveManagement = () => {
                     />
                 </div>
 
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border p-2 rounded-lg">
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                        className="border p-2 rounded-lg">
                     <option value="ALL">All Status</option>
                     <option value="PENDING">Pending</option>
                     <option value="APPROVED">Approved</option>
                     <option value="REJECTED">Rejected</option>
                 </select>
 
-                <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="border p-2 rounded-lg">
+                <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+                        className="border p-2 rounded-lg">
                     <option value="ALL">All Types</option>
                     <option value="ANNUAL">Annual</option>
                     <option value="SICK">Sick</option>
@@ -165,9 +169,13 @@ const AdminLeaveManagement = () => {
 
                     <tbody>
                     {isLoading ? (
-                        <tr><td colSpan={6} className="p-6 text-center">Loading...</td></tr>
+                        <tr>
+                            <td colSpan={6} className="p-6 text-center">Loading...</td>
+                        </tr>
                     ) : filteredRequests.length === 0 ? (
-                        <tr><td colSpan={6} className="p-6 text-center">No requests</td></tr>
+                        <tr>
+                            <td colSpan={6} className="p-6 text-center">No requests</td>
+                        </tr>
                     ) : (
                         filteredRequests.map((req: any) => {
                             const employee =
@@ -199,7 +207,7 @@ const AdminLeaveManagement = () => {
                                             onClick={() => setSelectedRequest(req)}
                                             className="p-2 border rounded"
                                         >
-                                            <Eye size={16} />
+                                            <Eye size={16}/>
                                         </button>
 
                                         {req.status === 'PENDING' && (

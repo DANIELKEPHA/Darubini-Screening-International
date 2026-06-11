@@ -3974,7 +3974,6 @@ export const api = createApi({
             { message: string; data: any },
             {
                 leaveRequestId: number;
-                approvalId: number;
                 comments?: string;
             }
         >({
@@ -4003,7 +4002,6 @@ export const api = createApi({
             { message: string; data: any },
             {
                 leaveRequestId: number;
-                approvalId: number;
                 comments?: string;
             }
         >({
@@ -4035,6 +4033,30 @@ export const api = createApi({
             }),
 
             invalidatesTags: [{ type: "LeaveBalance", id: "ME" }],
+        }),
+
+        downloadLeaveApprovalPdf: build.mutation<Blob, string>({
+            query: (leaveRequestId) => ({
+                url: `leaves/approve-pdf/${leaveRequestId}`,
+                method: "GET",
+                responseHandler: (response) => response.blob(),
+            }),
+
+            async onQueryStarted(leaveRequestId, { queryFulfilled }) {
+                try {
+                    const { data: blob } = await queryFulfilled;
+
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `leave-approval-${leaveRequestId}.pdf`;
+                    link.click();
+
+                    window.URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error("PDF download failed:", error);
+                }
+            },
         }),
 
         getPublicSignUpSettings: build.query<{ isSignUpEnabled: boolean }, void>({
@@ -4931,6 +4953,7 @@ export const {
     useDeleteCashAccountMutation,
     useGetTransactionsQuery,
     useReconcileTransactionMutation,
+    useDownloadLeaveApprovalPdfMutation,
     useInitiatePaymentMutation,
     useGetCurrenciesQuery,
     useGetAuditLogsQuery,

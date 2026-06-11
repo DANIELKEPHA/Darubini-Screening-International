@@ -12,6 +12,7 @@ import { NotificationPage } from "./NotificationPage";
 import { fetchAuthSession } from "aws-amplify/auth";
 import Requests from "@/app/(dashboard)/admin/settings/Requests";
 import LeavePolicies from "@/app/(dashboard)/admin/settings/LeavePolicies";
+import MyRequests from "@/app/(dashboard)/admin/settings/MyRequests";
 
 const ManagerSettings = () => {
     const { data: authUser, isLoading, error } = useGetAuthUserQuery(undefined, {
@@ -119,7 +120,8 @@ const ManagerSettings = () => {
     const tabs = [
         { id: "overview", label: "Overview", icon: User },
         { id: "profile", label: "Edit Profile", icon: SettingsIcon },
-        { id: "requests", label: "Requests", icon: Shield },
+        { id: "my_requests", label: "My Requests", icon: Shield },
+        { id: "requests", label: "Users Requests", icon: Shield },
         {id: "policies", label: "Policies", icon: FileText },
         { id: "notifications", label: "Notifications", icon: Bell },
     ];
@@ -189,6 +191,7 @@ const ManagerSettings = () => {
                                         isLoading={isUpdating}
                                     />
                                 )}
+                                {activeTab === "my_requests" && <MyRequests />}
                                 {activeTab === "requests" && <Requests />}
                                 {activeTab === "policies" && <LeavePolicies />}
                                 {activeTab === "notifications" && <NotificationPage />}

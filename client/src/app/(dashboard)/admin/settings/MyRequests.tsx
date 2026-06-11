@@ -8,7 +8,7 @@ import {
     useDownloadLeaveApprovalPdfMutation
 } from '@/state';
 import { Download } from 'lucide-react';
-import LeaveRequestModal from '@/app/(dashboard)/staff/settings/components/leave/LeaveRequestModal';
+import LeaveRequestModal from '@/app/(dashboard)/admin/settings/components/leave/LeaveRequestModal';
 
 const MyLeaveRequests = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);

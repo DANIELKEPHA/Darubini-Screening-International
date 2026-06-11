@@ -5,6 +5,8 @@ import {LeavePolicyRepository} from "../repositories/LeavePolicyRepository";
 import {LeaveBalanceRepository} from "../repositories/LeaveBalanceRepository";
 import {LeavePolicyRuleRepository} from "../repositories/LeavePolicyRuleRepository";
 import {LeaveRequestRepository} from "../repositories/LeaveRequestRepository";
+import PDFDocument from "pdfkit";
+import {PassThrough} from "node:stream";
 
 const prisma = new PrismaClient();
 
@@ -247,7 +249,6 @@ export const getMyLeaveRequests = async (
             }
         );
 
-        // 4. Response shaping (important upgrade)
         res.json({
             data: requests,
 
@@ -766,32 +767,22 @@ export const getUserLeaveBalance = async (
 export const rejectLeave = async (req: Request, res: Response): Promise<void> => {
     try {
         const admin = req.user as AuthUser;
-        const { leaveRequestId, approvalId, comments } = req.body;
+        const { leaveRequestId, comments } = req.body;
 
         const leaveRequest = await prisma.leaveRequest.findUnique({
             where: { id: leaveRequestId },
         });
 
         if (!leaveRequest) {
-            res.status(404).json({ message: "Leave request not found" });
-            return;
+            return void res.status(404).json({ message: "Leave not found" });
         }
 
-        await prisma.leaveApproval.update({
-            where: { id: approvalId },
-            data: {
-                status: "REJECTED",
-                comments,
-                actionedAt: new Date(),
-            },
-        });
-
-        const updatedRequest = await prisma.leaveRequest.update({
+        await prisma.leaveRequest.update({
             where: { id: leaveRequestId },
             data: {
                 status: "REJECTED",
-                approvedByAdminCognitoId: admin.id,
                 approvedAt: new Date(),
+                approvedByAdminCognitoId: admin.id,
             },
         });
 
@@ -807,75 +798,77 @@ export const rejectLeave = async (req: Request, res: Response): Promise<void> =>
                 balanceAfter: 0,
                 leaveRequestId: leaveRequest.id,
                 performedByCognitoId: admin.id,
-                remarks: "Leave rejected",
+                remarks: comments || "Rejected",
             },
         });
 
         res.json({
             message: "Leave rejected successfully",
-            data: updatedRequest,
         });
 
     } catch (error: any) {
-        console.error("Reject leave error:", error);
-        res.status(500).json({
-            message: "Failed to reject leave",
-            error: error.message,
-        });
+        console.error(error);
+        res.status(500).json({ message: "Failed to reject leave" });
     }
 };
 
 export const approveLeave = async (req: Request, res: Response): Promise<void> => {
     try {
         const admin = req.user as AuthUser;
-        const { leaveRequestId, approvalId, comments } = req.body;
+        const { leaveRequestId, comments } = req.body;
 
         const currentYear = new Date().getFullYear();
 
+        console.log("🚀 Approve triggered:", { leaveRequestId, admin: admin.id });
+
         const leaveRequest = await prisma.leaveRequest.findUnique({
             where: { id: leaveRequestId },
-            include: {
-                approvals: true,
-            },
+            include: { approvals: true },
         });
 
         if (!leaveRequest) {
-            res.status(404).json({ message: "Leave request not found" });
-            return;
+            return void res.status(404).json({ message: "Leave request not found" });
         }
 
-        // 1. Update approval step
-        await prisma.leaveApproval.update({
-            where: { id: approvalId },
-            data: {
-                status: "APPROVED",
-                comments,
-                actionedAt: new Date(),
-            },
-        });
-
-        // 2. Check if all approvals are completed
-        const allApproved = leaveRequest.approvals.every(
-            (a) => a.id === approvalId ? true : a.status === "APPROVED"
+        // 🔥 FIND NEXT PENDING APPROVAL (NO approvalId EVER)
+        const nextApproval = leaveRequest.approvals.find(
+            a => a.status === "PENDING"
         );
 
-        // 3. If not fully approved → stop here
-        if (!allApproved) {
-            const partialUpdate = await prisma.leaveRequest.update({
+        console.log("🧭 Next approval step:", nextApproval);
+
+        // If approvals exist, update next step
+        if (nextApproval) {
+            await prisma.leaveApproval.update({
+                where: { id: nextApproval.id },
+                data: {
+                    status: "APPROVED",
+                    comments,
+                    actionedAt: new Date(),
+                },
+            });
+        }
+
+        // Check remaining pending approvals
+        const remainingPending = leaveRequest.approvals.some(
+            a => a.status === "PENDING" && a.id !== nextApproval?.id
+        );
+
+        if (remainingPending) {
+            const updated = await prisma.leaveRequest.update({
                 where: { id: leaveRequestId },
                 data: {
                     status: "PENDING",
                 },
             });
 
-            res.json({
+            return void res.json({
                 message: "Leave partially approved",
-                data: partialUpdate,
+                data: updated,
             });
-            return;
         }
 
-        // 4. Get balance
+        // ✅ FINAL APPROVAL → APPLY BALANCE LOGIC
         const balance = await prisma.leaveBalance.findUnique({
             where: {
                 cognitoId_year: {
@@ -886,79 +879,50 @@ export const approveLeave = async (req: Request, res: Response): Promise<void> =
         });
 
         if (!balance) {
-            res.status(404).json({ message: "Leave balance not found" });
-            return;
+            return void res.status(404).json({ message: "Leave balance not found" });
         }
 
         const days = Number(leaveRequest.daysRequested);
 
-        // 5. Compute balance impact
         let balanceBefore = 0;
-        let balanceAfter = 0;
 
         switch (leaveRequest.leaveType) {
             case "ANNUAL":
                 balanceBefore = Number(balance.annualRemaining);
                 break;
-
             case "SICK":
                 balanceBefore = Number(balance.sickRemaining);
                 break;
-
             case "COMPASSIONATE":
                 balanceBefore = Number(balance.compassionateRemaining);
                 break;
-
             case "EMERGENCY":
                 balanceBefore = Number(balance.emergencyRemaining);
                 break;
-
-            default:
-                balanceBefore = 0;
         }
 
-        balanceAfter = balanceBefore - days;
+        const balanceAfter = balanceBefore - days;
 
-        // 6. Prevent negative balance
         if (balanceAfter < 0) {
-            res.status(400).json({
-                message: "Insufficient leave balance at approval time",
+            return void res.status(400).json({
+                message: "Insufficient leave balance",
             });
-            return;
         }
 
-        // 7. Prepare update data
-        const updateData: any = {};
-
-        switch (leaveRequest.leaveType) {
-            case "ANNUAL":
-                updateData.annualUsed = { increment: days };
-                updateData.annualRemaining = { decrement: days };
-                break;
-
-            case "SICK":
-                updateData.sickUsed = { increment: days };
-                updateData.sickRemaining = { decrement: days };
-                break;
-
-            case "COMPASSIONATE":
-                updateData.compassionateUsed = { increment: days };
-                updateData.compassionateRemaining = { decrement: days };
-                break;
-
-            case "EMERGENCY":
-                updateData.emergencyUsed = { increment: days };
-                updateData.emergencyRemaining = { decrement: days };
-                break;
-        }
-
-        // 8. Apply balance update
         await prisma.leaveBalance.update({
             where: { id: balance.id },
-            data: updateData,
+            data: {
+                annualUsed: leaveRequest.leaveType === "ANNUAL" ? { increment: days } : undefined,
+                annualRemaining: leaveRequest.leaveType === "ANNUAL" ? { decrement: days } : undefined,
+                sickUsed: leaveRequest.leaveType === "SICK" ? { increment: days } : undefined,
+                sickRemaining: leaveRequest.leaveType === "SICK" ? { decrement: days } : undefined,
+                compassionateUsed: leaveRequest.leaveType === "COMPASSIONATE" ? { increment: days } : undefined,
+                compassionateRemaining: leaveRequest.leaveType === "COMPASSIONATE" ? { decrement: days } : undefined,
+                emergencyUsed: leaveRequest.leaveType === "EMERGENCY" ? { increment: days } : undefined,
+                emergencyRemaining: leaveRequest.leaveType === "EMERGENCY" ? { decrement: days } : undefined,
+            },
         });
 
-        // 9. Ledger entry
         await prisma.leaveLedger.create({
             data: {
                 cognitoId: leaveRequest.requesterCognitoId,
@@ -971,12 +935,11 @@ export const approveLeave = async (req: Request, res: Response): Promise<void> =
                 balanceAfter,
                 leaveRequestId: leaveRequest.id,
                 performedByCognitoId: admin.id,
-                remarks: comments || "Leave approved",
+                remarks: comments || "Approved",
             },
         });
 
-        // 10. Final request update
-        const updatedRequest = await prisma.leaveRequest.update({
+        const final = await prisma.leaveRequest.update({
             where: { id: leaveRequestId },
             data: {
                 status: "APPROVED",
@@ -985,16 +948,346 @@ export const approveLeave = async (req: Request, res: Response): Promise<void> =
             },
         });
 
-        res.json({
+        return void res.json({
             message: "Leave fully approved",
-            data: updatedRequest,
+            data: final,
         });
 
     } catch (error: any) {
-        console.error("Approve leave error:", error);
+        console.error("Approve error:", error);
         res.status(500).json({
             message: "Failed to approve leave",
             error: error.message,
         });
+    }
+};
+
+export const downloadLeaveApprovalPdf = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { leaveRequestId } = req.params;
+        const user = req.user as AuthUser;
+
+        if (!user) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
+        const id = parseInt(leaveRequestId, 10);
+        if (isNaN(id)) {
+            res.status(400).json({ message: "Invalid Leave Request ID" });
+            return;
+        }
+
+        const leaveRequest = await prisma.leaveRequest.findUnique({
+            where: { id },
+            include: {
+                leaveBalance: true,
+                approvals: { orderBy: { approvalLevel: "asc" } },
+                ledgerEntries: { orderBy: { createdAt: "desc" }, take: 1 },
+            },
+        });
+
+        if (!leaveRequest) {
+            res.status(404).json({ message: "Leave request not found" });
+            return;
+        }
+
+        if (leaveRequest.status !== "APPROVED") {
+            res.status(400).json({ message: "PDF is only available for approved leave requests" });
+            return;
+        }
+
+        // Fetch employee details
+        const [adminUser, accountsUser, staffUser] = await Promise.all([
+            prisma.admin.findUnique({ where: { cognitoId: leaveRequest.requesterCognitoId } }),
+            prisma.accounts.findUnique({ where: { cognitoId: leaveRequest.requesterCognitoId } }),
+            prisma.staff.findUnique({ where: { cognitoId: leaveRequest.requesterCognitoId } }),
+        ]);
+
+        const employee = adminUser || accountsUser || staffUser;
+
+        // ====================== LEAVE TYPE NORMALIZATION ======================
+        const leaveTypeMap: Record<string, string> = {
+            ANNUAL: "Annual Leave",
+            SICK: "Sick Leave",
+            EMERGENCY: "Emergency Leave",
+            MATERNITY: "Maternity Leave",
+            PATERNITY: "Paternity Leave",
+            COMPASSIONATE: "Compassionate Leave",
+            OFF_DAY: "Off Day",
+            STUDY: "Study Leave",
+            UNPAID: "Unpaid Leave",
+            PUBLIC_HOLIDAY: "Public Holiday",
+            JURY_DUTY: "Jury Duty",
+            BEREAVEMENT: "Bereavement Leave",
+            OTHER: "Other Leave",
+        };
+
+        const normalizedLeaveType = leaveTypeMap[leaveRequest.leaveType] ||
+            leaveRequest.leaveType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+        const doc = new PDFDocument({
+            size: 'A4',
+            bufferPages: true,
+            margins: { top: 100, bottom: 60, left: 60, right: 60 },
+        });
+
+        const stream = new PassThrough();
+        const buffers: Buffer[] = [];
+
+        stream.on("data", (chunk) => buffers.push(chunk));
+        stream.on("end", () => {
+            const pdfBuffer = Buffer.concat(buffers);
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", `attachment; filename=leave-approval-${id}.pdf`);
+            res.send(pdfBuffer);
+        });
+
+        doc.pipe(stream);
+
+        const primaryColor = '#8d182c';
+        const darkBrown = '#290306';
+        const accentColor = '#15803d';
+        const gray = '#374151';
+        const lightGray = '#9ca3af';
+
+        // ====================== HEADER ======================
+        try {
+            doc.image("public/images/logo.png", 48, 42, { width: 82, height: 82 });
+        } catch (error) {
+            console.warn("Logo not found");
+        }
+
+        doc.fillColor(darkBrown)
+            .fontSize(17)
+            .font('Helvetica-Bold')
+            .text('Darubini Screening International Company', 145, 52, { width: 400 });
+
+        doc.fillColor(gray)
+            .fontSize(9)
+            .font('Helvetica')
+            .text('Leomar Court, 45 Westlands Road, Westlands', 145, 73, { width: 430 });
+
+        doc.fillColor(gray)
+            .fontSize(8.5)
+            .text('P.O. Box 6079-00100 | Tel: +254 738 743008 / 0771 943023', 145, 86);
+
+        doc.fillColor(gray)
+            .fontSize(8.5)
+            .text('WhatsApp: +254 721 369925 | +254 780 683290 | +254 746 730594', 145, 99);
+
+        doc.fillColor(darkBrown)
+            .fontSize(8.5)
+            .text('Email: info@darubiniscreening.com', 145, 112, { continued: true })
+            .fillColor(gray)
+            .text(' | Web: www.darubiniscreening.com');
+
+        doc.strokeColor(primaryColor)
+            .lineWidth(2.2)
+            .moveTo(50, 138)
+            .lineTo(550, 138)
+            .stroke();
+
+        doc.strokeColor('#d75c68')
+            .lineWidth(0.8)
+            .moveTo(50, 142)
+            .lineTo(550, 142)
+            .stroke();
+
+        // ====================== TITLE ======================
+        let y = 175;
+        doc.fillColor(primaryColor)
+            .fontSize(15.5)
+            .font('Helvetica-Bold')
+            .text('FORM HR-015 – LEAVE/OFF-DAY REQUEST FORM', 50, y, { align: 'left', width: 495 });
+
+        // ====================== EMPLOYEE DETAILS ======================
+        y = 225;
+        doc.fillColor(primaryColor)
+            .fontSize(14)
+            .font('Helvetica-Bold')
+            .text('Employee Details', 50, y);
+
+        y += 25;
+        const labelX = 90;
+        const valueX = 255;
+
+        doc.fontSize(10).font('Helvetica').fillColor(gray);
+
+        doc.text('Full Name:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(employee?.name || 'N/A', valueX, y);
+        y += 22;
+
+        doc.font('Helvetica').fillColor(gray).text('Email:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(employee?.email || 'N/A', valueX, y);
+        y += 22;
+
+        doc.font('Helvetica').fillColor(gray).text('Phone Number:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(employee?.phoneNumber || 'N/A', valueX, y);
+        y += 22;
+
+        doc.font('Helvetica').fillColor(gray).text('Department:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(employee?.department || 'N/A', valueX, y);
+        y += 22;
+
+        doc.font('Helvetica').fillColor(gray).text('Supervisor:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(employee?.supervisor || 'N/A', valueX, y);
+
+        y = 385;
+
+        // ====================== LEAVE DETAILS ======================
+        doc.fillColor(primaryColor)
+            .fontSize(14)
+            .font('Helvetica-Bold')
+            .text('Leave Details', 50, y);
+
+        y += 25;
+
+        doc.fontSize(10).font('Helvetica').fillColor(gray);
+
+        doc.text('Leave Type:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(normalizedLeaveType, valueX, y);
+        y += 22;
+
+        doc.font('Helvetica').fillColor(gray).text('Period:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(
+            `${new Date(leaveRequest.startDate).toLocaleDateString('en-GB')} — ${new Date(leaveRequest.endDate).toLocaleDateString('en-GB')}`,
+            valueX, y
+        );
+        y += 22;
+
+        doc.font('Helvetica').fillColor(gray).text('Days Approved:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(`${leaveRequest.daysRequested} day(s)`, valueX, y);
+        y += 26;
+
+        if (leaveRequest.reason) {
+            doc.font('Helvetica').fillColor(gray).text('Reason:', labelX, y);
+            doc.font('Helvetica').fillColor('#111827').text(leaveRequest.reason, valueX, y, { width: 300 });
+            y += 32;
+        } else {
+            y += 28;
+        }
+
+        // ====================== EMPLOYEE DECLARATION ======================
+        y += 35;
+
+        doc.fillColor(primaryColor)
+            .fontSize(14)
+            .font('Helvetica-Bold')
+            .text('Employee Declaration', 50, y);
+
+        y += 25;
+
+        doc.fontSize(10)
+            .font('Helvetica')
+            .fillColor(gray)
+            .text(
+                "I confirm that the above information is accurate and understand that approval is subject to company policy and staffing needs.",
+                90, y,
+                { width: 420, align: 'left' }
+            );
+
+        y += 55;
+
+        doc.font('Helvetica-Bold').fillColor(gray).text('Employee Signature:', 90, y);
+        doc.text('_______________________________', 250, y);
+
+        y += 28;
+        doc.font('Helvetica-Bold').fillColor(gray).text('Date:', 90, y);
+        doc.text('_______________________________', 160, y);
+
+        // ====================== PAGE BREAK ======================
+        doc.addPage();
+        y = 100;
+
+        // ====================== APPROVAL INFORMATION ======================
+        doc.fillColor(primaryColor)
+            .fontSize(14)
+            .font('Helvetica-Bold')
+            .text('Approval Details', 50, y);
+
+        y += 30;
+
+        doc.fontSize(10).font('Helvetica').fillColor(gray);
+
+        // Supervisor
+        doc.text('Approved By:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(employee?.supervisor || 'N/A', valueX, y);
+        y += 28;
+
+        doc.font('Helvetica-Bold').fillColor(gray).text('Supervisor Signature:', labelX, y);
+        doc.text('_______________________________', 250, y);
+        y += 28;
+
+        doc.font('Helvetica').fillColor(gray).text('Date of Approval:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text(
+            new Date().toLocaleDateString('en-GB', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            valueX, y
+        );
+
+        y += 45;
+
+        // ====================== HR DEPARTMENT USE ONLY ======================
+        doc.fillColor(primaryColor)
+            .fontSize(14)
+            .font('Helvetica-Bold')
+            .text('HR Department Use Only', 50, y);
+
+        y += 30;
+
+        doc.fontSize(10).font('Helvetica').fillColor(gray);
+
+        doc.text('HR Officer Name:', labelX, y);
+        doc.font('Helvetica-Bold').fillColor('#111827').text('_______________________________', valueX, y);
+        y += 28;
+
+        doc.font('Helvetica-Bold').fillColor(gray).text('Signature:', labelX, y);
+        doc.text('_______________________________', 250, y);
+        y += 28;
+
+        doc.font('Helvetica').fillColor(gray).text('Date:', labelX, y);
+        doc.text('_______________________________', 160, y);
+
+        // ====================== FOOTER ======================
+        const footerY = 745;
+
+        doc.strokeColor(lightGray)
+            .lineWidth(0.6)
+            .moveTo(50, footerY - 22)
+            .lineTo(550, footerY - 22)
+            .stroke();
+
+        doc.fillColor(gray)
+            .fontSize(9)
+            .text('Facilitating Safe Recruitment Decisions.', 50, footerY - 8, {
+                align: 'center',
+                width: 500
+            });
+
+        doc.fillColor(lightGray)
+            .fontSize(8)
+            .text(`Generated on: ${new Date().toLocaleString('en-GB')}`, 50, footerY + 12, {
+                align: 'center',
+                width: 500
+            });
+
+        doc.end();
+
+        await createAuditLog(
+            "DOWNLOAD_LEAVE_APPROVAL_PDF",
+            id.toString(),
+            user.role.toUpperCase() as PrismaUserRole,
+            user.id,
+            { leaveType: leaveRequest.leaveType, days: leaveRequest.daysRequested }
+        );
+
+    } catch (error: any) {
+        console.error("Error generating leave PDF:", error);
+        res.status(500).json({ message: "Failed to generate PDF", error: error.message });
     }
 };

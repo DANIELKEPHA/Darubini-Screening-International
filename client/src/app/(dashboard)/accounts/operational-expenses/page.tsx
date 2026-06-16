@@ -7,17 +7,17 @@ import HistoryTab from '@/app/(dashboard)/[slag]/os/components/[tabs]/HistoryTab
 import ExpenseForm from '@/app/(dashboard)/[slag]/os/components/ExpenseForm';
 import ExpenseDetails from '@/app/(dashboard)/[slag]/os/components/ExpenseDetails';
 import SearchInput from '@/app/(dashboard)/[slag]/os/components/SearchInput';
+import ExpenseHeaderFields, { HeaderFields } from '@/app/(dashboard)/[slag]/os/components/ExpenseHeaderFields';
 import { AuditLogFilters, OperationalExpense, OperationalExpenseFilters, SonnerToastOptions } from '@/state';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
     useGetOperationalExpenseQuery,
     useGetOperationalExpensesQuery,
     useGetAuditLogsQuery
 } from '@/state/api';
 import { skipToken } from '@reduxjs/toolkit/query';
-import { Download, Upload, Filter, BarChart3, Calendar, Printer, Settings, RefreshCw, Bell } from 'lucide-react';
 import ExpenseList from "@/app/(dashboard)/[slag]/os/components/ExpenseList";
+import {Plus} from "lucide-react";
 
 export default function ItemsPage() {
     const router = useRouter();
@@ -25,7 +25,17 @@ export default function ItemsPage() {
 
     const [selectedExpense, setSelectedExpense] = useState<OperationalExpense | null>(null);
     const [isCreating, setIsCreating] = useState(false);
+    const [showForm, setShowForm] = useState(false);
     const [activeTab, setActiveTab] = useState<'drafts' | 'created' | 'history'>('created');
+
+    const [headerFields, setHeaderFields] = useState<HeaderFields>({
+        currency: 'KES',
+        date: new Date().toISOString().split('T')[0],
+        agentName: '',
+        paymentAccountType: 'CASH',
+        bankAccountId: undefined,
+        cashAccountId: undefined,
+    });
 
     const [draftFilters, setDraftFilters] = useState<OperationalExpenseFilters>({
         page: 1,
@@ -79,6 +89,7 @@ export default function ItemsPage() {
         if (expenseId && expenseData) {
             setSelectedExpense(expenseData);
             setIsCreating(false);
+            setShowForm(false);
             router.replace('/staff/Items', { scroll: false });
         } else if (expenseId && expenseError) {
             toast.error('Failed to load expense', toastOptions);
@@ -94,7 +105,6 @@ export default function ItemsPage() {
 
     const handleFilterChange = (search: string) => {
         if (activeTab === 'history') {
-            // HistoryTab handles search client-side
             setSelectedExpense(null);
         } else {
             const setFilters = activeTab === 'drafts' ? setDraftFilters : setCreatedFilters;
@@ -119,7 +129,8 @@ export default function ItemsPage() {
 
     const handleNewExpense = () => {
         setIsCreating(true);
-        setSelectedExpense(null); // Ensure we're creating a new one
+        setSelectedExpense(null);
+        setShowForm(true);
     };
 
     const handleSelectExpense = (item: OperationalExpense | { page: number }) => {
@@ -137,17 +148,20 @@ export default function ItemsPage() {
         } else {
             setSelectedExpense(item);
             setIsCreating(false);
+            setShowForm(false);
         }
     };
 
     const handleFormClose = () => {
         setIsCreating(false);
         setSelectedExpense(null);
+        setShowForm(false);
     };
 
     const handleTabChange = (tab: 'drafts' | 'created' | 'history') => {
         setActiveTab(tab);
         setSelectedExpense(null);
+        setShowForm(false);
     };
 
     const currentFilters = useMemo(() => {
@@ -156,182 +170,52 @@ export default function ItemsPage() {
         return createdFilters;
     }, [activeTab, draftFilters, createdFilters, historyFilters]);
 
-    // Utility handlers (placeholders)
-    const handleExport = () => toast.success('Exporting data...', toastOptions);
-    const handleImport = () => toast.info('Import feature coming soon!', toastOptions);
-    const handleRefresh = () => {
-        toast.success('Refreshing data...', toastOptions);
-        window.location.reload();
-    };
-    const handleQuickFilters = () => toast.info('Quick filters applied!', toastOptions);
-    const handleGenerateReport = () => toast.success('Generating report...', toastOptions);
-    const handlePrint = () => {
-        toast.success('Preparing for print...', toastOptions);
-        window.print();
-    };
-
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Utility Section */}
-            <div className="bg-white border-b border-gray-200 shadow-sm">
-                <div className="container mx-auto px-4 sm:px-6 py-3">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        {/* Left side - Title and Status */}
-                        <div className="flex items-center gap-4">
-                            <div>
-                                <h1 className="text-xl font-bold text-gray-900">Operational Expenses</h1>
-                                <p className="text-sm text-gray-600 mt-1">
-                                    {activeTab === 'created'
-                                        ? 'All created expenses'
-                                        : activeTab === 'drafts'
-                                            ? 'Draft expenses'
-                                            : 'Expense history & audit logs'}
-                                </p>
+            {/* Header */}
+            <div className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+                <div className="w-full px-4 py-4">
+                    <div className="flex flex-col space-y-3">
+                        {/* First row - Title and New Expense Button */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div className="flex items-center gap-4">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-gray-900">Operational Expenses</h1>
+                                </div>
                             </div>
-                            <div className="hidden md:flex items-center gap-2">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                  Active
-                </span>
-                                <span className="text-sm text-gray-500">
-                  {expensesResponse?.expenses?.length || 0} total expenses
-                </span>
-                            </div>
-                        </div>
-
-                        {/* Right side - Utility Buttons */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={handleRefresh} className="flex items-center gap-2 hover:bg-gray-50">
-                                <RefreshCw className="w-4 h-4" />
-                                <span className="hidden sm:inline">Refresh</span>
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={handleQuickFilters} className="flex items-center gap-2 hover:bg-gray-50">
-                                <Filter className="w-4 h-4" />
-                                <span className="hidden sm:inline">Filters</span>
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={handleGenerateReport} className="flex items-center gap-2 hover:bg-gray-50">
-                                <BarChart3 className="w-4 h-4" />
-                                <span className="hidden sm:inline">Report</span>
-                            </Button>
-
-                            <div className="flex items-center border-l border-gray-200 pl-2">
-                                <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2 hover:bg-gray-50">
-                                    <Download className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Export</span>
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={handleImport} className="flex items-center gap-2 hover:bg-gray-50 ml-2">
-                                    <Upload className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Import</span>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    onClick={handleNewExpense}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium flex items-center gap-2 shadow-sm hover:shadow-md"
+                                    aria-label="Create new expense"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    New Expense
                                 </Button>
                             </div>
-
-                            <Button variant="outline" size="sm" onClick={handlePrint} className="flex items-center gap-2 hover:bg-gray-50">
-                                <Printer className="w-4 h-4" />
-                                <span className="hidden sm:inline">Print</span>
-                            </Button>
-
-                            <div className="flex items-center border-l border-gray-200 pl-2">
-                                <Button variant="ghost" size="sm" className="hover:bg-gray-100" onClick={() => toast.info('Notifications', toastOptions)}>
-                                    <Bell className="w-4 h-4" />
-                                </Button>
-                                <Button variant="ghost" size="sm" className="hover:bg-gray-100 ml-2" onClick={() => toast.info('Settings', toastOptions)}>
-                                    <Settings className="w-4 h-4" />
-                                </Button>
-                            </div>
-
-                            <div className="flex items-center">
-                                <select className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                    <option>Today</option>
-                                    <option>This Week</option>
-                                    <option>This Month</option>
-                                    <option>Last Month</option>
-                                    <option>Custom Range</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Quick Stats Row */}
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="bg-blue-50 p-3 rounded-lg">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-blue-900">Total Amount</span>
-                                <BarChart3 className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <p className="text-lg font-bold text-blue-800 mt-1">
-                                {expensesResponse?.expenses
-                                    ?.reduce((sum, expense) => sum + (expense.amount || 0), 0)
-                                    .toLocaleString('en-US', { style: 'currency', currency: 'USD' }) || '$0.00'}
-                            </p>
                         </div>
 
-                        <div className="bg-green-50 p-3 rounded-lg">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-green-900">Active Expenses</span>
-                                <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded">
-                  {expensesResponse?.expenses?.filter(e => e.status === 'active').length || 0}
-                </span>
-                            </div>
-                            <p className="text-lg font-bold text-green-800 mt-1">
-                                {expensesResponse?.expenses
-                                    ?.filter(e => e.status === 'active')
-                                    .reduce((sum, expense) => sum + (expense.amount || 0), 0)
-                                    .toLocaleString('en-US', { style: 'currency', currency: 'USD' }) || '$0.00'}
-                            </p>
-                        </div>
-
-                        <div className="bg-yellow-50 p-3 rounded-lg">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-yellow-900">Drafts</span>
-                                <span className="text-xs font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
-                  {expensesResponse?.expenses?.filter(e => e.isDraft).length || 0}
-                </span>
-                            </div>
-                            <p className="text-lg font-bold text-yellow-800 mt-1">
-                                {expensesResponse?.expenses
-                                    ?.filter(e => e.isDraft)
-                                    .reduce((sum, expense) => sum + (expense.amount || 0), 0)
-                                    .toLocaleString('en-US', { style: 'currency', currency: 'USD' }) || '$0.00'}
-                            </p>
-                        </div>
-
-                        <div className="bg-purple-50 p-3 rounded-lg">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-purple-900">Avg. Expense</span>
-                                <Calendar className="w-4 h-4 text-purple-600" />
-                            </div>
-                            <p className="text-lg font-bold text-purple-800 mt-1">
-                                {expensesResponse?.expenses?.length
-                                    ? (expensesResponse.expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0) /
-                                        expensesResponse.expenses.length)
-                                        .toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
-                                    : '$0.00'}
-                            </p>
+                        {/* Second row - Header Fields */}
+                        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100">
+                            <ExpenseHeaderFields
+                                onFieldsChange={setHeaderFields}
+                                initialValues={headerFields}
+                            />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="container mx-auto px-4 sm:px-6 py-6">
-                <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-                    <Card className="w-full lg:w-1/3 bg-white rounded-lg shadow-lg p-4 sm:p-6">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Operational</h1>
-                            <Button
-                                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200 font-medium"
-                                onClick={handleNewExpense}
-                                aria-label="Create new expense"
-                            >
-                                New Expense
-                            </Button>
-                        </div>
-
-                        <div className="border-b border-gray-200 mb-4">
-                            <nav className="-mb-px flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4" role="tablist">
+            {/* Main Content - Full Width */}
+            <div className="w-full px-4 py-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Tabs and Filters */}
+                    <div className="border-b border-gray-200 px-6 pt-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <nav className="-mb-px flex space-x-4" role="tablist">
                                 <Button
                                     variant="ghost"
-                                    className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
                                         activeTab === 'created'
                                             ? 'border-b-2 border-blue-600 text-blue-600'
                                             : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -346,7 +230,7 @@ export default function ItemsPage() {
 
                                 <Button
                                     variant="ghost"
-                                    className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
                                         activeTab === 'drafts'
                                             ? 'border-b-2 border-blue-600 text-blue-600'
                                             : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -361,7 +245,7 @@ export default function ItemsPage() {
 
                                 <Button
                                     variant="ghost"
-                                    className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                                    className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
                                         activeTab === 'history'
                                             ? 'border-b-2 border-blue-600 text-blue-600'
                                             : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -374,141 +258,138 @@ export default function ItemsPage() {
                                     History
                                 </Button>
                             </nav>
-                        </div>
 
-                        {activeTab === 'history' ? (
-                            <div className="flex flex-col gap-4 mb-4">
-                                <div>
-                                    <label htmlFor="entityId" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Filter by Expense
-                                    </label>
-                                    <select
-                                        id="entityId"
-                                        value={historyFilters.entityId || ''}
-                                        onChange={(e) => handleEntityIdChange(e.target.value)}
-                                        className="block w-full rounded-lg border border-gray-200 bg-white py-2.5 px-4 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                                        disabled={isExpensesLoading}
-                                    >
-                                        <option value="">All Operational Expenses</option>
-                                        {expensesResponse?.expenses.map((expense) => (
-                                            <option key={expense.id} value={expense.id}>
-                                                {expense.id} - {expense.expenseName} ({expense.currency} {expense.amount})
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {isExpensesLoading && <p className="text-sm text-gray-500 mt-1">Loading expenses...</p>}
-                                </div>
-
-                                <div>
-                                    <label htmlFor="limit" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Items per Page
-                                    </label>
-                                    <select
-                                        id="limit"
-                                        value={historyFilters.limit}
-                                        onChange={(e) => handleLimitChange(Number(e.target.value))}
-                                        className="block w-full rounded-lg border border-gray-200 bg-white py-2.5 px-4 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
-                                    >
-                                        {[10, 25, 50, 100].map((value) => (
-                                            <option key={value} value={value}>
-                                                {value}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
+                            {/* Search and Filters */}
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                {activeTab === 'history' ? (
+                                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                                        <select
+                                            value={historyFilters.entityId || ''}
+                                            onChange={(e) => handleEntityIdChange(e.target.value)}
+                                            className="rounded-lg border border-gray-200 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                            disabled={isExpensesLoading}
+                                        >
+                                            <option value="">All Expenses</option>
+                                            {expensesResponse?.expenses.map((expense) => (
+                                                <option key={expense.id} value={expense.id}>
+                                                    {expense.expenseName}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={historyFilters.limit}
+                                            onChange={(e) => handleLimitChange(Number(e.target.value))}
+                                            className="rounded-lg border border-gray-200 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                        >
+                                            {[10, 25, 50, 100].map((value) => (
+                                                <option key={value} value={value}>
+                                                    {value}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ) : null}
                                 <SearchInput
                                     onSearch={handleFilterChange}
-                                    searchValue=""
-                                    placeholder="Search audit logs by action, actor, or expense..."
+                                    searchValue={activeTab !== 'history' ? (currentFilters as OperationalExpenseFilters).search || '' : ''}
+                                    placeholder={activeTab === 'history' ? "Search audit logs..." : "Search expenses..."}
                                 />
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="p-6">
+                        {activeTab === 'history' ? (
+                            <>
+                                <HistoryTab
+                                    auditLogs={auditLogsResponse?.data || []}
+                                    isLoading={isAuditLogsLoading}
+                                    error={auditLogsError}
+                                    showEntityId
+                                />
+                                {auditLogsResponse && auditLogsResponse.total > 0 && historyFilters.page !== undefined && (
+                                    <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                                        <Button
+                                            disabled={historyFilters.page === 1}
+                                            onClick={() => handleSelectExpense({ page: historyFilters.page! - 1 })}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                                        >
+                                            Previous
+                                        </Button>
+                                        <span className="text-gray-600 text-sm">
+                                            Page {historyFilters.page} of {auditLogsResponse.totalPages || 1} (Total: {auditLogsResponse.total} logs)
+                                        </span>
+                                        <Button
+                                            disabled={historyFilters.page >= (auditLogsResponse.totalPages || 1)}
+                                            onClick={() => handleSelectExpense({ page: historyFilters.page! + 1 })}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                )}
+                            </>
                         ) : (
-                            <SearchInput
-                                onSearch={handleFilterChange}
-                                searchValue={(currentFilters as OperationalExpenseFilters).search || ''}
-                                placeholder="Search expenses by name or ID..."
+                            <ExpenseList
+                                filters={currentFilters as OperationalExpenseFilters}
+                                onSelect={handleSelectExpense}
+                                selectedExpenseId={selectedExpense?.id}
                             />
                         )}
+                    </div>
+                </div>
+            </div>
 
-                        <div
-                            className="mt-4"
-                            id={
-                                activeTab === 'created'
-                                    ? 'created-panel'
-                                    : activeTab === 'history'
-                                        ? 'history-panel'
-                                        : 'drafts-panel'
-                            }
-                            role="tabpanel"
+            {/* Slide-in Form from Right */}
+            <div
+                className={`fixed inset-y-0 right-0 w-full sm:w-[600px] lg:w-[700px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
+                    showForm || selectedExpense ? 'translate-x-0' : 'translate-x-full'
+                }`}
+            >
+                <div className="h-full overflow-y-auto">
+                    <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-10">
+                        <h2 className="text-xl font-bold text-gray-900">
+                            {isCreating ? 'Create New Expense' : 'Expense Details'}
+                        </h2>
+                        <Button
+                            onClick={handleFormClose}
+                            variant="ghost"
+                            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-2"
                         >
-                            {activeTab === 'history' ? (
-                                <>
-                                    <HistoryTab
-                                        auditLogs={auditLogsResponse?.data || []}
-                                        isLoading={isAuditLogsLoading}
-                                        error={auditLogsError}
-                                        showEntityId
-                                    />
-                                    {auditLogsResponse && auditLogsResponse.total > 0 && historyFilters.page !== undefined && (
-                                        <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-                                            <Button
-                                                disabled={historyFilters.page === 1}
-                                                onClick={() => handleSelectExpense({ page: historyFilters.page! - 1 })}
-                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
-                                            >
-                                                Previous
-                                            </Button>
-                                            <span className="text-gray-600 text-sm">
-                        Page {historyFilters.page} of {auditLogsResponse.totalPages || 1} (Total: {auditLogsResponse.total} logs)
-                      </span>
-                                            <Button
-                                                disabled={historyFilters.page >= (auditLogsResponse.totalPages || 1)}
-                                                onClick={() => handleSelectExpense({ page: historyFilters.page! + 1 })}
-                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
-                                            >
-                                                Next
-                                            </Button>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <ExpenseList
-                                    filters={currentFilters as OperationalExpenseFilters}
-                                    onSelect={handleSelectExpense}
-                                    selectedExpenseId={selectedExpense?.id}
-                                />
-                            )}
-                        </div>
-                    </Card>
-
-                    <Card className="w-full lg:w-2/3 bg-white rounded-lg shadow-lg p-4 sm:p-6">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </Button>
+                    </div>
+                    <div className="px-6 py-6">
                         {isCreating ? (
-                            <ExpenseForm expense={selectedExpense} onClose={handleFormClose} />
+                            <ExpenseForm
+                                expense={selectedExpense}
+                                onClose={handleFormClose}
+                                headerFields={headerFields}
+                            />
                         ) : selectedExpense ? (
                             <ExpenseDetails
                                 expense={selectedExpense}
-                                onEdit={() => setIsCreating(true)}
-                                onClose={() => setSelectedExpense(null)}
+                                onEdit={() => {
+                                    setIsCreating(true);
+                                    setShowForm(true);
+                                }}
+                                onClose={handleFormClose}
                             />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-10 text-gray-500">
-                                <p className="text-lg font-medium">No expense selected</p>
-                                <p className="text-sm mt-2">
-                                    Select an expense from the list or create a new one to get started.
-                                </p>
-                                <Button
-                                    className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200"
-                                    onClick={handleNewExpense}
-                                    aria-label="Create new expense"
-                                >
-                                    Create New Expense
-                                </Button>
-                            </div>
-                        )}
-                    </Card>
+                        ) : null}
+                    </div>
                 </div>
             </div>
+
+            {/* Overlay */}
+            {(showForm || selectedExpense) && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"
+                    onClick={handleFormClose}
+                />
+            )}
         </div>
     );
 }

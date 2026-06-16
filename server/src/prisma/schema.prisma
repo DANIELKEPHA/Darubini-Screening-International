@@ -606,12 +606,12 @@ model OperationalExpense {
   agentName                   String
   kraPin                      String?
   date                        DateTime
-  expenseDetails              String
+  expenseDetails              String?
   expenseName                 String
-  institutionName             String
+  institutionName             String?
   frequency                   Frequency
   paymentMode                 PaymentMode
-  paymentModeDescription      String
+  paymentModeDescription      String?
   amount                      Decimal        @db.Decimal(14, 2)
   currency                    String
   totalAmountPaid             Decimal        @db.Decimal(14, 2)

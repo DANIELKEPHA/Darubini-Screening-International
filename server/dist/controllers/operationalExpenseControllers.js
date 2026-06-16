@@ -12,20 +12,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadOperationalExpensePdf = exports.deleteOperationalExpense = exports.approveOperationalExpense = exports.reverseAndEditOperationalExpense = exports.reverseOperationalExpense = exports.updateOperationalExpense = exports.getOperationalExpense = exports.getOperationalExpenses = exports.createDraftOperationalExpense = exports.createOperationalExpense = exports.validateAccount = void 0;
+exports.downloadOperationalExpensePdf = exports.deleteOperationalExpense = exports.approveOperationalExpense = exports.reverseAndEditOperationalExpense = exports.reverseOperationalExpense = exports.updateOperationalExpense = exports.getOperationalExpense = exports.getOperationalExpenses = exports.createOperationalExpense = exports.validateAccount = void 0;
 const client_1 = require("@prisma/client");
 const sanitize_html_1 = __importDefault(require("sanitize-html"));
 const pdfkit_1 = __importDefault(require("pdfkit"));
 const node_stream_1 = require("node:stream");
 const prisma = new client_1.PrismaClient();
-// Define actorFieldMap at module scope
 const actorFieldMap = {
     admin: "actorAdminCognitoId",
     accounts: "actorAccountsCognitoId",
     staff: "actorStaffCognitoId",
     user: "actorUserCognitoId",
 };
-// Helper function for input validation (unchanged)
 const validateString = (value, maxLength, fieldName) => {
     if (value === undefined || value === null)
         return null;
@@ -122,7 +120,7 @@ const createAuditLog = (action_1, entityId_1, role_1, cognitoId_1, expense_1, ..
 });
 const createOperationalExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { agentName, kraPin, date, expenseDetails, expenseName, institutionName, frequency, paymentMode, paymentModeDescription, amount, currency, totalAmountPaid, supplierId, bankAccountId, cashAccountId, mobileAccountId, otherAccountId, isDraft = false, itemType, accountType, } = req.body;
+        const { agentName, kraPin, date, expenseDetails, expenseName, institutionName, frequency, paymentMode, paymentModeDescription, amount, currency, totalAmountPaid, supplierId, bankAccountId, cashAccountId, mobileAccountId, otherAccountId, isDraft = false, itemType, accountType } = req.body;
         if (!req.user) {
             res.status(401).json({ message: "Unauthorized: No authenticated user" });
             return;
@@ -131,7 +129,7 @@ const createOperationalExpense = (req, res) => __awaiter(void 0, void 0, void 0,
         const allowedRoles = ["admin", "accounts", "staff"];
         if (!allowedRoles.includes(role)) {
             res.status(403).json({
-                message: `Access denied: Role ${role} not authorized to create operational expenses`,
+                message: `Access denied: Role ${role} not authorized to create operational expenses`
             });
             return;
         }
@@ -141,11 +139,11 @@ const createOperationalExpense = (req, res) => __awaiter(void 0, void 0, void 0,
         const sanitizedExpenseDetails = validateString(expenseDetails, 1000, "Expense details");
         const sanitizedExpenseName = validateString(expenseName, 100, "Expense name");
         const sanitizedInstitutionName = validateString(institutionName, 100, "Institution name");
-        // Removed: const sanitizedReason = validateString(reasonForPayment, 500, "Reason for payment");
         const sanitizedAmount = validateAmount(amount, "Amount");
         const sanitizedTotalAmountPaid = totalAmountPaid !== undefined
             ? validateAmount(totalAmountPaid, "Total amount paid")
             : sanitizedAmount;
+        let sanitizedPaymentModeDesc = null;
         if (role === "admin") {
             if (!frequency || !Object.values(client_1.Frequency).includes(frequency)) {
                 throw new Error("Invalid or missing frequency");
@@ -153,10 +151,13 @@ const createOperationalExpense = (req, res) => __awaiter(void 0, void 0, void 0,
             if (!paymentMode || !Object.values(client_1.PaymentMode).includes(paymentMode)) {
                 throw new Error("Invalid or missing payment mode");
             }
-            const sanitizedPaymentModeDesc = validateString(paymentModeDescription, 500, "Payment mode description");
             const sanitizedCurrency = validateString(currency, 10, "Currency");
             if (sanitizedCurrency && sanitizedCurrency.length < 3) {
                 throw new Error("Currency must be at least 3 characters");
+            }
+            // ✅ Make paymentModeDescription truly optional
+            if (paymentModeDescription && paymentModeDescription.trim() !== "") {
+                sanitizedPaymentModeDesc = validateString(paymentModeDescription, 500, "Payment mode description");
             }
         }
         if (itemType && !Object.values(client_1.ItemType).includes(itemType)) {
@@ -176,13 +177,12 @@ const createOperationalExpense = (req, res) => __awaiter(void 0, void 0, void 0,
             institutionName: sanitizedInstitutionName,
             frequency: role === "admin" && frequency ? frequency : client_1.Frequency.ONCE_OFF,
             paymentMode: role === "admin" && paymentMode ? paymentMode : client_1.PaymentMode.CASH,
-            paymentModeDescription: role === "admin" && paymentModeDescription
-                ? paymentModeDescription
-                : "Pending payment mode description",
+            // ✅ Now properly optional (null when not provided or empty)
+            paymentModeDescription: sanitizedPaymentModeDesc,
             amount: new client_1.Prisma.Decimal(sanitizedAmount),
             currency: effectiveCurrency,
             totalAmountPaid: new client_1.Prisma.Decimal(sanitizedTotalAmountPaid),
-            paymentStatus: isDraft ? client_1.PaymentStatus.PENDING : client_1.PaymentStatus.PENDING,
+            paymentStatus: client_1.PaymentStatus.PENDING,
             expenseStatus: isDraft ? client_1.ExpenseStatus.DRAFT : client_1.ExpenseStatus.PENDING,
             supplier: supplierId ? { connect: { id: supplierId } } : undefined,
             bankAccount: bankAccountId ? { connect: { id: bankAccountId } } : undefined,
@@ -192,7 +192,7 @@ const createOperationalExpense = (req, res) => __awaiter(void 0, void 0, void 0,
             itemType,
             accountType,
             [role === "admin" ? "createdByAdmin" : role === "accounts" ? "createdByAccounts" : "createdByStaff"]: {
-                connect: { cognitoId },
+                connect: { cognitoId }
             },
         };
         const expense = yield prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
@@ -246,214 +246,6 @@ const createOperationalExpense = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 exports.createOperationalExpense = createOperationalExpense;
-const createDraftOperationalExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { role, id: cognitoId } = req.user;
-        const allowedRoles = ["admin", "accounts", "staff"];
-        if (!allowedRoles.includes(role)) {
-            res.status(403).json({ message: `Access denied: Role ${role} not authorized to create drafts` });
-            return;
-        }
-        const { agentName, kraPin, date, expenseDetails, expenseName, institutionName, reasonForPayment, frequency, paymentMode, paymentModeDescription, amount, currency, totalAmountPaid, bankAccountId, cashAccountId, mobileAccountId, otherAccountId, itemType, accountType, } = req.body;
-        // Validate inputs
-        if (!agentName || typeof agentName !== "string" || agentName.length > 100) {
-            res.status(400).json({ message: "Agent name must be a string, 100 characters or less" });
-            return;
-        }
-        if (kraPin !== undefined && kraPin !== null && (typeof kraPin !== "string" || kraPin.length !== 11 || !/^[A-Za-z0-9]+$/.test(kraPin))) {
-            res.status(400).json({ message: "KRA PIN must be an 11-character alphanumeric string or null" });
-            return;
-        }
-        if (date && isNaN(new Date(date).getTime())) {
-            res.status(400).json({ message: "Invalid date" });
-            return;
-        }
-        if (expenseDetails && (typeof expenseDetails !== "string" || expenseDetails.length > 1000)) {
-            res.status(400).json({ message: "Expense details must be a string, 1000 characters or less" });
-            return;
-        }
-        if (!expenseName || typeof expenseName !== "string" || expenseName.length > 100) {
-            res.status(400).json({ message: "Expense name must be a string, 100 characters or less" });
-            return;
-        }
-        if (!institutionName || typeof institutionName !== "string" || institutionName.length > 100) {
-            res.status(400).json({ message: "Institution name must be a string, 100 characters or less" });
-            return;
-        }
-        if (!reasonForPayment || typeof reasonForPayment !== "string" || reasonForPayment.length > 500) {
-            res.status(400).json({ message: "Reason for payment must be a string, 500 characters or less" });
-            return;
-        }
-        if (role === "admin") {
-            if (frequency && !Object.values(client_1.Frequency).includes(frequency)) {
-                res.status(400).json({ message: "Invalid frequency" });
-                return;
-            }
-            if (paymentMode && !Object.values(client_1.PaymentMode).includes(paymentMode)) {
-                res.status(400).json({ message: "Invalid payment mode" });
-                return;
-            }
-            if (paymentModeDescription && (typeof paymentModeDescription !== "string" || paymentModeDescription.length > 500)) {
-                res.status(400).json({ message: "Payment mode description must be a string, 500 characters or less" });
-                return;
-            }
-            if (currency && (typeof currency !== "string" || currency.length < 3 || currency.length > 10)) {
-                res.status(400).json({ message: "Currency must be a string between 3 and 10 characters if provided" });
-                return;
-            }
-        }
-        if (!amount || typeof amount !== "string" || isNaN(Number(amount)) || Number(amount) <= 0) {
-            res.status(400).json({ message: "Amount must be a string representing a positive number" });
-            return;
-        }
-        if (!/^\d+(\.\d{0,2})?$/.test(amount)) {
-            res.status(400).json({ message: "Amount must be a valid number with up to 2 decimal places" });
-            return;
-        }
-        if (totalAmountPaid !== undefined && (isNaN(Number(totalAmountPaid)) || Number(totalAmountPaid) < 0)) {
-            res.status(400).json({ message: "Total amount paid must be a non-negative number if provided" });
-            return;
-        }
-        if (itemType && !Object.values(client_1.ItemType).includes(itemType)) {
-            res.status(400).json({ message: "Invalid item type" });
-            return;
-        }
-        if (accountType && !Object.values(client_1.AccountType).includes(accountType)) {
-            res.status(400).json({ message: "Invalid account type" });
-            return;
-        }
-        // Validate exactly one account ID is provided and exists
-        const accountIds = [bankAccountId, cashAccountId, mobileAccountId, otherAccountId].filter(id => id !== undefined);
-        if (accountIds.length > 1) {
-            res.status(400).json({ message: "Only one account ID (bank, cash, mobile, or other) can be provided" });
-            return;
-        }
-        let account;
-        if (bankAccountId) {
-            account = yield prisma.bankAccount.findUnique({ where: { id: bankAccountId } });
-            if (!account) {
-                res.status(400).json({ message: "Invalid or non-existent bank account ID" });
-                return;
-            }
-            if (account.currency !== (currency || "KES")) {
-                res.status(400).json({ message: "Bank account currency must match expense currency" });
-                return;
-            }
-        }
-        else if (cashAccountId) {
-            account = yield prisma.cashAccount.findUnique({ where: { id: cashAccountId } });
-            if (!account) {
-                res.status(400).json({ message: "Invalid or non-existent cash account ID" });
-                return;
-            }
-            if (account.currency !== (currency || "KES")) {
-                res.status(400).json({ message: "Cash account currency must match expense currency" });
-                return;
-            }
-        }
-        else if (mobileAccountId) {
-            account = yield prisma.mobileAccount.findUnique({ where: { id: mobileAccountId } });
-            if (!account) {
-                res.status(400).json({ message: "Invalid or non-existent mobile account ID" });
-                return;
-            }
-            if (account.currency !== (currency || "KES")) {
-                res.status(400).json({ message: "Mobile account currency must match expense currency" });
-                return;
-            }
-        }
-        else if (otherAccountId) {
-            account = yield prisma.otherAccount.findUnique({ where: { id: otherAccountId } });
-            if (!account) {
-                res.status(400).json({ message: "Invalid or non-existent other account ID" });
-                return;
-            }
-            if (account.currency !== (currency || "KES")) {
-                res.status(400).json({ message: "Other account currency must match expense currency" });
-                return;
-            }
-        }
-        const data = {
-            agentName: (0, sanitize_html_1.default)(agentName),
-            kraPin: kraPin ? (0, sanitize_html_1.default)(kraPin) : null,
-            date: new Date(date || new Date()),
-            expenseDetails: expenseDetails ? (0, sanitize_html_1.default)(expenseDetails) : "Draft expense details pending",
-            expenseName: (0, sanitize_html_1.default)(expenseName),
-            institutionName: (0, sanitize_html_1.default)(institutionName),
-            frequency: role === "admin" && frequency ? frequency : client_1.Frequency.ONCE_OFF,
-            paymentMode: role === "admin" && paymentMode ? paymentMode : client_1.PaymentMode.CASH,
-            paymentModeDescription: role === "admin" && paymentModeDescription ? (0, sanitize_html_1.default)(paymentModeDescription) : "Pending payment mode description",
-            amount: new client_1.Prisma.Decimal(amount),
-            currency: role === "admin" && currency ? (0, sanitize_html_1.default)(currency) : "KES",
-            totalAmountPaid: new client_1.Prisma.Decimal(totalAmountPaid || 0),
-            expenseStatus: client_1.ExpenseStatus.DRAFT,
-            paymentStatus: client_1.PaymentStatus.PENDING,
-            bankAccount: bankAccountId ? { connect: { id: bankAccountId } } : undefined,
-            cashAccount: cashAccountId ? { connect: { id: cashAccountId } } : undefined,
-            mobileAccount: mobileAccountId ? { connect: { id: mobileAccountId } } : undefined,
-            otherAccount: otherAccountId ? { connect: { id: otherAccountId } } : undefined,
-            itemType,
-            accountType,
-            [role === "admin" ? "createdByAdmin" : role === "accounts" ? "createdByAccounts" : "createdByStaff"]: {
-                connect: { cognitoId },
-            },
-        };
-        const expense = yield prisma.operationalExpense.create({
-            data,
-            include: {
-                createdByAdmin: true,
-                createdByAccounts: true,
-                createdByStaff: true,
-                approvedByAdmin: true,
-                approvedByAccounts: true,
-                approvedByStaff: true,
-                supplier: true,
-                bankAccount: true,
-                cashAccount: true,
-                mobileAccount: true,
-                otherAccount: true,
-            },
-        });
-        const actorFieldMap = {
-            admin: "actorAdminCognitoId",
-            accounts: "actorAccountsCognitoId",
-            user: "actorUserCognitoId",
-            staff: "actorStaffCognitoId",
-        };
-        const actorField = actorFieldMap[role];
-        yield prisma.auditLog.create({
-            data: {
-                action: "CREATE_DRAFT",
-                entity: "OperationalExpense",
-                entityId: expense.id.toString(),
-                meta: {
-                    expenseName: expense.expenseName,
-                    amount: expense.amount.toString(),
-                    currency: expense.currency,
-                    itemType: expense.itemType,
-                    accountType: expense.accountType,
-                    bankAccountId: expense.bankAccountId,
-                    cashAccountId: expense.cashAccountId,
-                    mobileAccountId: expense.mobileAccountId,
-                    otherAccountId: expense.otherAccountId,
-                    createdBy: role,
-                    cognitoId,
-                },
-                [actorField]: cognitoId,
-            },
-        });
-        res.status(201).json(expense);
-    }
-    catch (error) {
-        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-            res.status(404).json({ message: "Related record not found (account or creator user)" });
-            return;
-        }
-        console.error(error); // Log for debugging
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
-exports.createDraftOperationalExpense = createDraftOperationalExpense;
 const getOperationalExpenses = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { page = "1", limit = "10", period, agentName, expenseName, kraPin, expenseDescription, frequency, paymentMode, bankAccountId, cashAccountId, mobileAccountId, otherAccountId, includeDrafts = "false" } = req.query;

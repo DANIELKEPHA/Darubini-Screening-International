@@ -9,7 +9,6 @@ const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = express_1.default.Router();
 // Routes
 router.post("/", (0, authMiddleware_1.authMiddleware)(["accounts", "staff", "admin"]), operationalExpenseControllers_1.createOperationalExpense);
-router.post("/draft", (0, authMiddleware_1.authMiddleware)(["accounts", "staff", "admin"]), operationalExpenseControllers_1.createDraftOperationalExpense);
 router.get("/", (0, authMiddleware_1.authMiddleware)(["accounts", "staff", "admin"]), operationalExpenseControllers_1.getOperationalExpenses);
 router.get("/:id", (0, authMiddleware_1.authMiddleware)(["accounts", "staff", "admin"]), operationalExpenseControllers_1.getOperationalExpense);
 router.put("/:id", (0, authMiddleware_1.authMiddleware)(["accounts", "staff", "admin"]), operationalExpenseControllers_1.updateOperationalExpense);

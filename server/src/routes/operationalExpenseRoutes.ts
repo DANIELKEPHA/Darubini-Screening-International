@@ -1,7 +1,6 @@
 import express from "express";
 import {
   createOperationalExpense,
-  createDraftOperationalExpense,
   getOperationalExpenses,
   getOperationalExpense,
   updateOperationalExpense,
@@ -17,7 +16,6 @@ const router = express.Router();
 
 // Routes
 router.post("/", authMiddleware(["accounts", "staff", "admin"]), createOperationalExpense);
-router.post("/draft", authMiddleware(["accounts", "staff", "admin"]), createDraftOperationalExpense);
 router.get("/", authMiddleware(["accounts", "staff", "admin"]), getOperationalExpenses);
 router.get("/:id", authMiddleware(["accounts", "staff", "admin"]), getOperationalExpense);
 router.put("/:id", authMiddleware(["accounts", "staff", "admin"]), updateOperationalExpense);

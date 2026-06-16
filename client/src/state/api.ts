@@ -3328,28 +3328,12 @@ export const api = createApi({
 
         getCurrencies: build.query<Currency[], void>({
             query: () => ({
-                url: 'https://restcountries.com/v3.1/all?fields=currencies',
+                url: "/currencies",
             }),
-            transformResponse: (response: { currencies: { [key: string]: { name: string; symbol: string } } }[]) => {
-                // Create a Set to store unique currencies
-                const uniqueCurrencies = new Set<string>();
-                const currencies: Currency[] = [];
-
-                // Iterate through each country's currencies
-                response.forEach((country) => {
-                    if (country.currencies) {
-                        Object.entries(country.currencies).forEach(([code, { name }]) => {
-                            if (!uniqueCurrencies.has(code)) {
-                                uniqueCurrencies.add(code);
-                                currencies.push({ code, name });
-                            }
-                        });
-                    }
-                });
-
-                // Sort currencies by code for consistent dropdown order
-                return currencies.sort((a, b) => a.code.localeCompare(b.code));
-            },
+            transformResponse: (response: {
+                success: boolean;
+                data: Currency[];
+            }) => response.data,
         }),
 
         getAttendanceRecords: build.query<AttendanceResponse, {

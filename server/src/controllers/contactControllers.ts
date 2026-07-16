@@ -1,16 +1,25 @@
 import { Request, Response } from "express";
 import { PrismaClient, Prisma } from "@prisma/client";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library"; // Import the correct error type
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import sanitizeHtml from "sanitize-html";
 import validator from "validator";
 
 const prisma = new PrismaClient();
 
+let socketEmitter: {
+    emitNewContact: (contact: any) => void;
+    emitContactDeleted: (contactId: number, deletedBy?: string) => void; // Added optional second parameter
+    emitContactUpdated: (contact: any) => void;
+} | null = null;
+
+export const setSocketEmitter = (emitter: typeof socketEmitter) => {
+    socketEmitter = emitter;
+};
+
 export const createContact = async (req: Request, res: Response): Promise<void> => {
     try {
         const { name, email, message, subject, interests, privacyConsent, userCognitoId } = req.body;
 
-        // Validate required fields
         if (!name || typeof name !== "string" || name.trim() === "" || name.length > 100) {
             res.status(400).json({ message: "Name must be a non-empty string, 100 characters or less" });
             return;
@@ -36,7 +45,6 @@ export const createContact = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        // Validate userCognitoId
         if (userCognitoId) {
             const user = await prisma.user.findUnique({
                 where: { cognitoId: userCognitoId },
@@ -47,7 +55,6 @@ export const createContact = async (req: Request, res: Response): Promise<void> 
             }
         }
 
-        // Sanitize inputs
         const cleanName = sanitizeHtml(name);
         const cleanEmail = sanitizeHtml(email);
         const cleanMessage = message ? sanitizeHtml(message) : null;
@@ -66,8 +73,12 @@ export const createContact = async (req: Request, res: Response): Promise<void> 
             },
         });
 
+        if (socketEmitter) {
+            socketEmitter.emitNewContact(contact);
+        }
+
         res.status(201).json(contact);
-    } catch (error: any) { // Explicitly type as `any` to avoid TS18046
+    } catch (error: any) {
         if (error instanceof PrismaClientKnownRequestError) {
             if (error.code === "P2002") {
                 res.status(400).json({ message: "Unique constraint violation" });
@@ -160,11 +171,13 @@ export const getContact = async (req: Request, res: Response): Promise<void> => 
         }
 
         res.json(contact);
-    } catch (error: any) { // Explicitly type as `any` to avoid TS18046
+    } catch (error: any) {
         console.error("Error retrieving contact:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
+
 
 export const deleteContact = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -178,13 +191,18 @@ export const deleteContact = async (req: Request, res: Response): Promise<void> 
 
         await prisma.contact.update({
             where: { id: idNumber },
-            data: { deletedAt: new Date() }, // Soft delete
+            data: { deletedAt: new Date() },
         });
 
-        const adminCognitoId = req.headers["x-user-cognito-id"];
+        const adminCognitoId = req.headers["x-user-cognito-id"] as string;
+
+        // Emit WebSocket event
+        if (socketEmitter) {
+            socketEmitter.emitContactDeleted(idNumber, adminCognitoId);
+        }
 
         res.json({ message: "Contact submission deleted successfully" });
-    } catch (error: any) { // Explicitly type as `any` to avoid TS18046
+    } catch (error: any) {
         if (error instanceof PrismaClientKnownRequestError && error.code === "P2025") {
             res.status(404).json({ message: "Contact submission not found" });
             return;

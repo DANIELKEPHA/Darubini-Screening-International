@@ -76,11 +76,26 @@ const setupSocketServer = (httpServer) => {
                     return next(new Error("Invalid token"));
                 }
                 const userRole = typeof decoded["custom:role"] === "string" ? decoded["custom:role"].toLowerCase() : "";
-                const userType = userRole === "admin" ? "admin" : "user";
+                const userType = userRole === "admin" ? "admin" :
+                    userRole === "staff" ? "staff" :
+                        userRole === "accounts" ? "accounts" : "user";
                 const userId = decoded.sub;
                 let userDetails = null;
+                // Check user type and fetch from appropriate table
                 if (userType === "admin") {
                     userDetails = yield prisma.admin.findUnique({
+                        where: { cognitoId: userId },
+                        select: { name: true, email: true },
+                    });
+                }
+                else if (userType === "staff") {
+                    userDetails = yield prisma.staff.findUnique({
+                        where: { cognitoId: userId },
+                        select: { name: true, email: true },
+                    });
+                }
+                else if (userType === "accounts") {
+                    userDetails = yield prisma.accounts.findUnique({
                         where: { cognitoId: userId },
                         select: { name: true, email: true },
                     });
@@ -99,6 +114,7 @@ const setupSocketServer = (httpServer) => {
                     id: userId,
                     name: userDetails.name,
                     email: userDetails.email || undefined,
+                    role: userRole,
                 };
             }
             else {
@@ -126,6 +142,23 @@ const setupSocketServer = (httpServer) => {
     io.on("connection", (socket) => __awaiter(void 0, void 0, void 0, function* () {
         const socketUser = socket.data.user;
         console.log(`🔌 ${socketUser.type} connected:`, socketUser);
+        // Join user-specific room
+        socket.join(`user:${socketUser.id}`);
+        if (socketUser.type !== "guest") {
+            socket.join(`role:${socketUser.type}`);
+        }
+        // --- CONTACT NOTIFICATIONS ---
+        // Join contacts room for admins, accounts, and staff
+        if (["admin", "accounts", "staff"].includes(socketUser.type)) {
+            socket.join("contacts-room");
+            console.log(`📨 ${socketUser.type} ${socketUser.name} joined contacts room`);
+            // Send confirmation
+            socket.emit("contacts:joined", {
+                message: "You are now receiving contact notifications",
+                timestamp: new Date().toISOString(),
+            });
+        }
+        // --- CHAT ROOMS (existing) ---
         if (socketUser.type === "admin") {
             const rooms = yield prisma.chatRoom.findMany();
             rooms.forEach((room) => {
@@ -133,13 +166,17 @@ const setupSocketServer = (httpServer) => {
             });
         }
         else {
-            const where = socketUser.type === "guest" ? { guestUserId: parseInt(socketUser.id) } : { userCognitoId: socketUser.id };
+            const where = socketUser.type === "guest"
+                ? { guestUserId: parseInt(socketUser.id) }
+                : { userCognitoId: socketUser.id };
             const rooms = yield prisma.chatRoom.findMany({ where });
             rooms.forEach((room) => {
                 socket.join(`room-${room.id}`);
                 console.log(`${socketUser.type === "guest" ? "Guest" : "User"} ${socketUser.name} joining room-${room.id}`);
             });
         }
+        // --- EVENT HANDLERS ---
+        // Chat events (existing)
         socket.on("chat:joinRoom", (roomId) => {
             socket.join(`room-${roomId}`);
             console.log(`${socketUser.type} ${socketUser.name} joined room-${roomId}`);
@@ -148,10 +185,93 @@ const setupSocketServer = (httpServer) => {
             socket.leave(`room-${roomId}`);
             console.log(`${socketUser.type} ${socketUser.name} left room-${roomId}`);
         });
+        // Contact events
+        socket.on("contacts:subscribe", () => {
+            socket.join("contacts-room");
+            console.log(`📨 ${socketUser.type} ${socketUser.name} subscribed to contacts room`);
+            socket.emit("contacts:subscribed", {
+                message: "Successfully subscribed to contact notifications",
+                timestamp: new Date().toISOString(),
+            });
+        });
+        socket.on("contacts:unsubscribe", () => {
+            socket.leave("contacts-room");
+            console.log(`📨 ${socketUser.type} ${socketUser.name} unsubscribed from contacts room`);
+            socket.emit("contacts:unsubscribed", {
+                message: "Unsubscribed from contact notifications",
+                timestamp: new Date().toISOString(),
+            });
+        });
+        // Heartbeat
+        socket.on("ping", () => {
+            socket.emit("pong", { timestamp: new Date().toISOString() });
+        });
         socket.on("disconnect", () => {
             console.log(`${socketUser.type} disconnected:`, socketUser.id);
         });
     }));
-    return io;
+    // --- HELPER FUNCTIONS FOR EMITTING EVENTS ---
+    // Emit new contact notification
+    const emitNewContact = (contact) => {
+        var _a;
+        console.log(`📨 Broadcasting new contact notification for: ${contact.name}`);
+        const payload = {
+            type: "NEW_CONTACT",
+            data: contact,
+            timestamp: new Date().toISOString(),
+        };
+        // Emit to all users in the contacts room (admins, accounts, staff)
+        io.to("contacts-room").emit("contacts:new", payload);
+        // Also emit to specific role rooms for redundancy
+        io.to("role:admin").emit("contacts:new", payload);
+        io.to("role:accounts").emit("contacts:new", payload);
+        io.to("role:staff").emit("contacts:new", payload);
+        console.log(`✅ New contact broadcasted to ${((_a = io.sockets.adapter.rooms.get("contacts-room")) === null || _a === void 0 ? void 0 : _a.size) || 0} clients`);
+    };
+    // Emit contact deleted notification
+    const emitContactDeleted = (contactId, deletedBy) => {
+        console.log(`🗑️ Broadcasting contact deletion for ID: ${contactId}`);
+        const payload = {
+            type: "CONTACT_DELETED",
+            contactId,
+            deletedBy: deletedBy || "system",
+            timestamp: new Date().toISOString(),
+        };
+        io.to("contacts-room").emit("contacts:deleted", payload);
+        io.to("role:admin").emit("contacts:deleted", payload);
+    };
+    // Emit contact updated notification
+    const emitContactUpdated = (contact) => {
+        console.log(`📝 Broadcasting contact update for ID: ${contact.id}`);
+        const payload = {
+            type: "CONTACT_UPDATED",
+            data: contact,
+            timestamp: new Date().toISOString(),
+        };
+        io.to("contacts-room").emit("contacts:updated", payload);
+    };
+    // Get connected users count
+    const getConnectedUsers = () => {
+        var _a, _b, _c, _d, _e;
+        const rooms = io.sockets.adapter.rooms;
+        return {
+            total: io.sockets.sockets.size,
+            contactsRoom: ((_a = rooms.get("contacts-room")) === null || _a === void 0 ? void 0 : _a.size) || 0,
+            byRole: {
+                admin: ((_b = rooms.get("role:admin")) === null || _b === void 0 ? void 0 : _b.size) || 0,
+                accounts: ((_c = rooms.get("role:accounts")) === null || _c === void 0 ? void 0 : _c.size) || 0,
+                staff: ((_d = rooms.get("role:staff")) === null || _d === void 0 ? void 0 : _d.size) || 0,
+                user: ((_e = rooms.get("role:user")) === null || _e === void 0 ? void 0 : _e.size) || 0,
+            }
+        };
+    };
+    // Return both io instance and helper functions
+    return {
+        io,
+        emitNewContact,
+        emitContactDeleted,
+        emitContactUpdated,
+        getConnectedUsers,
+    };
 };
 exports.setupSocketServer = setupSocketServer;

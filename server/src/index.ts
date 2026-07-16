@@ -1,3 +1,4 @@
+// index.ts (updated)
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
@@ -36,23 +37,34 @@ import stickyNotesRoutes from "./routes/stickyNotesRoutes";
 import leaveRoutes from "./routes/leaveRoutes";
 import leavePoliciesRoutes from "./routes/leavePoliciesRoutes";
 import currencyRoutes from "./routes/currencyRoutes";
+import { setSocketEmitter } from "./controllers/contactControllers";
 
 const app = express();
 const httpServer = createServer(app);
-const io = setupSocketServer(httpServer);
+const {
+  io,
+  emitNewContact,
+  emitContactDeleted,
+  emitContactUpdated,
+  getConnectedUsers
+} = setupSocketServer(httpServer);
 const prisma = new PrismaClient();
+
+// Set socket emitter in contact controller
+setSocketEmitter({
+  emitNewContact,
+  emitContactDeleted,
+  emitContactUpdated
+});
 
 async function testDB() {
   try {
     await prisma.$connect();
-
     const result = await prisma.$queryRawUnsafe(
         "SELECT current_database(), inet_server_addr();"
     );
-
     console.log("✅ Connected to PostgreSQL!");
     console.log("📊 DB Info:", result);
-
   } catch (error) {
     console.error("❌ Failed to connect to DB", error);
   }
@@ -103,8 +115,15 @@ app.use("/clients", clientRoutes);
 app.use("/invoices", invoiceRoutes);
 app.use("/stickynotes", stickyNotesRoutes);
 
+// Admin endpoint to check socket status
+app.get("/socket-status", authMiddleware(["admin"]), (req, res) => {
+  const stats = getConnectedUsers();
+  res.json(stats);
+});
+
 httpServer.listen(Number(process.env.PORT) || 3002, "0.0.0.0", () => {
-  console.log(`Server + WebSocket running on port ${process.env.PORT || 3001}`);
+  console.log(`✅ Server + WebSocket running on port ${process.env.PORT || 3001}`);
+  console.log(`📊 Socket.IO path: /socket.io/`);
 });
 
 process.on("SIGTERM", async () => {

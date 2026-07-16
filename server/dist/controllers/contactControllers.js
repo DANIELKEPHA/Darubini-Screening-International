@@ -12,16 +12,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteContact = exports.getContact = exports.getContacts = exports.createContact = void 0;
+exports.deleteContact = exports.getContact = exports.getContacts = exports.createContact = exports.setSocketEmitter = void 0;
 const client_1 = require("@prisma/client");
-const library_1 = require("@prisma/client/runtime/library"); // Import the correct error type
+const library_1 = require("@prisma/client/runtime/library");
 const sanitize_html_1 = __importDefault(require("sanitize-html"));
 const validator_1 = __importDefault(require("validator"));
 const prisma = new client_1.PrismaClient();
+let socketEmitter = null;
+const setSocketEmitter = (emitter) => {
+    socketEmitter = emitter;
+};
+exports.setSocketEmitter = setSocketEmitter;
 const createContact = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { name, email, message, subject, interests, privacyConsent, userCognitoId } = req.body;
-        // Validate required fields
         if (!name || typeof name !== "string" || name.trim() === "" || name.length > 100) {
             res.status(400).json({ message: "Name must be a non-empty string, 100 characters or less" });
             return;
@@ -46,7 +50,6 @@ const createContact = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             res.status(400).json({ message: "Subject must be 200 characters or less" });
             return;
         }
-        // Validate userCognitoId
         if (userCognitoId) {
             const user = yield prisma.user.findUnique({
                 where: { cognitoId: userCognitoId },
@@ -56,7 +59,6 @@ const createContact = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 return;
             }
         }
-        // Sanitize inputs
         const cleanName = (0, sanitize_html_1.default)(name);
         const cleanEmail = (0, sanitize_html_1.default)(email);
         const cleanMessage = message ? (0, sanitize_html_1.default)(message) : null;
@@ -73,9 +75,12 @@ const createContact = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 userCognitoId: userCognitoId || null,
             },
         });
+        if (socketEmitter) {
+            socketEmitter.emitNewContact(contact);
+        }
         res.status(201).json(contact);
     }
-    catch (error) { // Explicitly type as `any` to avoid TS18046
+    catch (error) {
         if (error instanceof library_1.PrismaClientKnownRequestError) {
             if (error.code === "P2002") {
                 res.status(400).json({ message: "Unique constraint violation" });
@@ -161,7 +166,7 @@ const getContact = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }
         res.json(contact);
     }
-    catch (error) { // Explicitly type as `any` to avoid TS18046
+    catch (error) {
         console.error("Error retrieving contact:", error);
         res.status(500).json({ message: "Internal server error" });
     }
@@ -177,12 +182,16 @@ const deleteContact = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         yield prisma.contact.update({
             where: { id: idNumber },
-            data: { deletedAt: new Date() }, // Soft delete
+            data: { deletedAt: new Date() },
         });
         const adminCognitoId = req.headers["x-user-cognito-id"];
+        // Emit WebSocket event
+        if (socketEmitter) {
+            socketEmitter.emitContactDeleted(idNumber, adminCognitoId);
+        }
         res.json({ message: "Contact submission deleted successfully" });
     }
-    catch (error) { // Explicitly type as `any` to avoid TS18046
+    catch (error) {
         if (error instanceof library_1.PrismaClientKnownRequestError && error.code === "P2025") {
             res.status(404).json({ message: "Contact submission not found" });
             return;

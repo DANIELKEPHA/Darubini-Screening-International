@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// index.ts (updated)
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
@@ -50,10 +51,17 @@ const stickyNotesRoutes_1 = __importDefault(require("./routes/stickyNotesRoutes"
 const leaveRoutes_1 = __importDefault(require("./routes/leaveRoutes"));
 const leavePoliciesRoutes_1 = __importDefault(require("./routes/leavePoliciesRoutes"));
 const currencyRoutes_1 = __importDefault(require("./routes/currencyRoutes"));
+const contactControllers_1 = require("./controllers/contactControllers");
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
-const io = (0, socketServer_1.setupSocketServer)(httpServer);
+const { io, emitNewContact, emitContactDeleted, emitContactUpdated, getConnectedUsers } = (0, socketServer_1.setupSocketServer)(httpServer);
 const prisma = new client_1.PrismaClient();
+// Set socket emitter in contact controller
+(0, contactControllers_1.setSocketEmitter)({
+    emitNewContact,
+    emitContactDeleted,
+    emitContactUpdated
+});
 function testDB() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -107,8 +115,14 @@ app.use("/settings", appSettingsRoutes_1.default);
 app.use("/clients", clientRoutes_1.default);
 app.use("/invoices", invoiceRoutes_1.default);
 app.use("/stickynotes", stickyNotesRoutes_1.default);
+// Admin endpoint to check socket status
+app.get("/socket-status", (0, authMiddleware_1.authMiddleware)(["admin"]), (req, res) => {
+    const stats = getConnectedUsers();
+    res.json(stats);
+});
 httpServer.listen(Number(process.env.PORT) || 3002, "0.0.0.0", () => {
-    console.log(`Server + WebSocket running on port ${process.env.PORT || 3001}`);
+    console.log(`✅ Server + WebSocket running on port ${process.env.PORT || 3001}`);
+    console.log(`📊 Socket.IO path: /socket.io/`);
 });
 process.on("SIGTERM", () => __awaiter(void 0, void 0, void 0, function* () {
     console.log("SIGTERM received. Closing Prisma client...");

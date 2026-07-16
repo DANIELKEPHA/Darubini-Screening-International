@@ -37,7 +37,7 @@ import {
     AttendanceReportResponse, ClientExpense,
     AttendanceResponse, ClientExpenseFilters, Invoice, InvoiceItem, ClientExpensesResponse, ExpenseStatus, StickyNote,
     StickyNoteInput, DepositResponse, DailyBalanceResponse, LeaveRequest, LeaveDecision, LeaveBalance, PaginationMeta,
-    LeaveLedger, LeaveBalanceResponse, LeavePolicy,
+    LeaveLedger, LeaveBalanceResponse, LeavePolicy, ContactsResponse,
 } from "@/state/types";
 import ExpenseType = $Enums.ExpenseType;
 import Decimal from "decimal.js";
@@ -1371,17 +1371,24 @@ export const api = createApi({
 
         createContact: build.mutation<Contact, Partial<Contact>>({
             query: (body) => ({
-                url: `contacts`,
+                url: "contacts",
                 method: "POST",
                 body,
             }),
             invalidatesTags: ["Contacts"],
-            async onQueryStarted(body: Partial<Contact>, { dispatch, queryFulfilled }) {
+            async onQueryStarted(body, { dispatch, queryFulfilled }) {
                 const patchResult = dispatch(
-                    api.util.updateQueryData("getContacts", { page: 1, limit: 10 }, (draft: Contact[]) => {
-                        draft.push({ id: Date.now(), ...body } as any);
+                    api.util.updateQueryData("getContacts", { page: 1, limit: 10 }, (draft: ContactsResponse) => {
+                        // Optimistic update for object structure
+                        draft.contacts.unshift({
+                            id: Date.now(),
+                            ...body,
+                            createdAt: new Date().toISOString(),
+                        } as Contact);
+                        draft.total += 1;
                     })
                 );
+
                 try {
                     await queryFulfilled;
                 } catch {
@@ -1391,40 +1398,26 @@ export const api = createApi({
             },
         }),
 
-        getContacts: build.query<
-            Contact[],
-            { page?: number; limit?: number; search?: string }
-        >({
+        getContacts: build.query<ContactsResponse, { page?: number; limit?: number; search?: string }>({
             query: ({ page = 1, limit = 10, search }) => {
-                const params = cleanParams({
-                    page: page.toString(),
-                    limit: page.toString(),
-                    search,
-                });
-                return { url: "contacts", params };
+                return {
+                    url: "contacts",
+                    params: {
+                        page: page.toString(),
+                        limit: limit.toString(),
+                        ...(search?.trim() && { search: search.trim() }),
+                    },
+                };
             },
-            providesTags: (result: Contact[] | undefined) =>
-                result
-                    ? [
-                        ...result.map(({ id }) => ({ type: "Contacts" as const, id })),
-                        { type: "Contacts", id: "LIST" },
-                    ]
-                    : [{ type: "Contacts", id: "LIST" }],
+            providesTags: ["Contacts"],
             async onQueryStarted(_, { queryFulfilled }) {
-                await withToast(queryFulfilled, {
-                    error: "Failed to fetch contacts.",
-                });
+                await withToast(queryFulfilled, { error: "Failed to fetch contacts." });
             },
         }),
 
         getContact: build.query<Contact, number>({
             query: (id) => `contacts/${id}`,
-            providesTags: (result: Contact | undefined, error, id: number) => [{ type: "Contacts", id }],
-            async onQueryStarted(_, { queryFulfilled }) {
-                await withToast(queryFulfilled, {
-                    error: "Failed to fetch contact details.",
-                });
-            },
+            providesTags: (_, __, id) => [{ type: "Contacts", id }],
         }),
 
         deleteContact: build.mutation<void, number>({
@@ -1433,13 +1426,17 @@ export const api = createApi({
                 method: "DELETE",
             }),
             invalidatesTags: ["Contacts"],
-            async onQueryStarted(id: number, { dispatch, queryFulfilled }) {
+            async onQueryStarted(id, { dispatch, queryFulfilled }) {
                 const patchResult = dispatch(
-                    api.util.updateQueryData("getContacts", { page: 1, limit: 10 }, (draft: Contact[]) => {
-                        const index = draft.findIndex((c) => c.id === id);
-                        if (index !== -1) draft.splice(index, 1);
+                    api.util.updateQueryData("getContacts", { page: 1, limit: 10 }, (draft: ContactsResponse) => {
+                        const index = draft.contacts.findIndex((c) => c.id === id);
+                        if (index !== -1) {
+                            draft.contacts.splice(index, 1);
+                            draft.total -= 1;
+                        }
                     })
                 );
+
                 try {
                     await queryFulfilled;
                 } catch {

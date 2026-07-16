@@ -28,7 +28,7 @@ import {
     ClipboardList,
     MessageSquare,
     ChevronDown,
-    ChevronRight, UserRoundPen,
+    ChevronRight, UserRoundPen, MailPlus,
 } from "lucide-react";
 import { NAVBAR_HEIGHT } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -96,6 +96,7 @@ const AppSidebar = () => {
                         ],
                     },
                     { icon: PieChart, label: "Reports", href: "/admin/reports" },
+                    { icon: MailPlus, label: "NewsLetter", href: "/admin/newsletter" },
                     { icon: Settings, label: "Settings", href: "/admin/settings" },
                 ];
             case "accounts":

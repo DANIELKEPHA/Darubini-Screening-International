@@ -82,6 +82,16 @@ const Mission = () => {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
                         {
+                            icon: <Lock className="w-6 h-6" />,
+                            title: "Confidentiality",
+                            desc: "We always treat our client’s information with the utmost confidentiality, ensuring it's not shared with third parties."
+                        },
+                        {
+                            icon: <Users className="w-6 h-6" />,
+                            title: "Reliability",
+                            desc: "We deliver dependable, timely, and consistent services that our clients can trust, ensuring every commitment is met with professionalism."
+                        },
+                        {
                             icon: <Handshake className="w-6 h-6" />,
                             title: "Integrity",
                             desc: "Always being honest, delivering what we promise and walking the talk."
@@ -92,20 +102,11 @@ const Mission = () => {
                             desc: "Good isn’t enough. We must consistently and reliably deliver exceptional services."
                         },
                         {
-                            icon: <Users className="w-6 h-6" />,
-                            title: "Team Work",
-                            desc: "Must be a team player and commit to deliver the team goals. Be flexible, cooperate and compassionate to others."
-                        },
-                        {
                             icon: <Briefcase className="w-6 h-6" />,
                             title: "Professionalism",
                             desc: "We shall be ethical, courteous and civil in how we conduct ourselves while ensuring we deliver skillfully and competently."
-                        },
-                        {
-                            icon: <Lock className="w-6 h-6" />,
-                            title: "Confidentiality",
-                            desc: "We always treat our client’s information with the utmost confidentiality, ensuring it's not shared with third parties."
                         }
+
                     ].map((value, index) => (
                         <motion.div
                             key={index}

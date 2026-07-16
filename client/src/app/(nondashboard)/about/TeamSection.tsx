@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BadgeCheck, ShieldCheck, Fingerprint, Search, UserCheck, X, ChevronLeft, ChevronRight } from "lucide-react";
+import TeamDetailsModal from "@/app/(nondashboard)/about/TeamDetailsModal";
 
 interface TeamMember {
     name: string;
@@ -245,67 +246,7 @@ const TeamSection = () => {
             </div>
 
             {/* Member Detail Modal */}
-            <AnimatePresence>
-                {selectedMember && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
-                        onClick={() => setSelectedMember(null)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="relative">
-                                <button
-                                    onClick={() => setSelectedMember(null)}
-                                    className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 text-primary-700 flex items-center justify-center shadow-md hover:bg-white transition-colors"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                                <div className="h-48 bg-gradient-to-r from-primary-500 to-primary-700 relative overflow-hidden rounded-t-2xl">
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="w-32 h-32 bg-white/20 rounded-full flex items-center justify-center text-white">
-                                            {selectedMember.icon}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-8">
-                                    <div className="text-center mb-6">
-                                        <h3 className="text-3xl font-bold text-primary-900">{selectedMember.name}</h3>
-                                        <p className="text-primary-600 text-xl mt-2">{selectedMember.title}</p>
-                                        <div className="mt-4 inline-block bg-primary-100 text-primary-700 px-4 py-2 rounded-full text-sm font-medium">
-                                            {selectedMember.experience}
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-primary-100 pt-6">
-                                        <h4 className="text-xl font-semibold text-primary-800 mb-4">Key Expertise</h4>
-                                        <ul className="space-y-3">
-                                            {selectedMember.details.map((detail, i) => (
-                                                <motion.li
-                                                    key={i}
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: i * 0.1 }}
-                                                    className="flex items-start"
-                                                >
-                                                    <BadgeCheck className="w-5 h-5 text-primary-500 mt-0.5 mr-3 flex-shrink-0" />
-                                                    <span className="text-primary-700">{detail}</span>
-                                                </motion.li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <TeamDetailsModal member={selectedMember} onClose={() => setSelectedMember(null)} />
 
             <style jsx>{`
                 @keyframes blob {

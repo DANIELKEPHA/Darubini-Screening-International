@@ -1175,20 +1175,6 @@ export interface ChatRoom {
     messages: ChatMessage[];
 }
 
-export interface Contact {
-    id: number;
-    name: string;
-    email: string;
-    message?: string | null;
-    subject?: string | null;
-    interests?: string | null;
-    privacyConsent: boolean;
-    userCognitoId?: string | null;
-    createdAt: string;
-    deletedAt?: string | null;
-    user?: User | null;
-}
-
 export interface EmailCampaign {
     id: number;
     brevoCampaignId: number;
@@ -1293,4 +1279,45 @@ export interface InitialStateTypes {
     operationalExpenses: OperationalExpensesState;
     clientExpenses: ClientExpensesState;
     attendance: AttendanceState;
+}
+
+export interface ContactsResponse {
+    contacts: Contact[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
+
+export interface Contact {
+    id: number;
+    name: string;
+    email: string;
+    message?: string | null;
+    subject?: string | null;
+    interests?: string | null;
+    privacyConsent: boolean;
+    userCognitoId?: string | null;
+    createdAt: string;
+    deletedAt?: string | null;
+    user?: User | null;
+}
+
+export interface CreateContactInput {
+    name: string;
+    email: string;
+    message?: string | null;
+    subject?: string | null;
+    interests?: string | null;
+    privacyConsent: boolean;
+    userCognitoId?: string | null;
+}
+
+export interface UpdateContactInput {
+    name?: string;
+    email?: string;
+    message?: string | null;
+    subject?: string | null;
+    interests?: string | null;
+    privacyConsent?: boolean;
 }

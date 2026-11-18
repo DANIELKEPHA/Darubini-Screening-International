@@ -169,7 +169,7 @@ const FooterSection = () => {
                 <div className="flex items-start">
                   <MapPin className="h-4 w-4 mt-1 mr-3 flex-shrink-0" />
                   <span>
-                  Leomar Court, 45 Westlands Road, Westlands.<br />
+                  Westlands Business Park, 04 Chiromo Lane, Westlands.<br />
                   P.O Box 6079 - 00100, GPO Nairobi, Kenya
                 </span>
                 </div>

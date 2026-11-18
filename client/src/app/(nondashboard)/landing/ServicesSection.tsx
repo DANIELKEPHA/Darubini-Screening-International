@@ -57,7 +57,7 @@ const ServicesSection = () => {
     const services = [
         {
             title: "Private Investigation",
-            description: "We offers a range of services including fraud and corruption investigations, performance and grievance investigations, forensic accounting, and financial investigations to help clients quickly and effectively address challenges."
+            description: "We offer a range of services including fraud and corruption investigations, performance and grievance investigations, forensic accounting, and financial investigations to help clients quickly and effectively address challenges."
         },
         {
             title: "Document Verification",

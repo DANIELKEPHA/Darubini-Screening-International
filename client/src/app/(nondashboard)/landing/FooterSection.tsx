@@ -180,9 +180,6 @@ const FooterSection = () => {
                     <a href="tel:+254746730594" className="block hover:text-white transition-colors">
                       Support: +254 746 730 594
                     </a>
-                    <a href="tel:+254772743008" className="block hover:text-white transition-colors">
-                      Support: +254 772 743 008
-                    </a>
                     <a href="tel:+254738743008" className="block hover:text-white transition-colors">
                       Support: +254 738 743 008
                     </a>
@@ -193,8 +190,7 @@ const FooterSection = () => {
                   <Mail className="h-4 w-4 mt-1 mr-3 flex-shrink-0" />
                   <div className="space-y-1">
                     <a href="mailto:info@darubiniscreening.com" className="block hover:text-white transition-colors">info@darubiniscreening.com</a>
-                    <a href="mailto:relations@darubiniscreening.com" className="block hover:text-white transition-colors">relations@darubiniscreening.com</a>
-                    <a href="mailto:hadijaj@darubiniscreening.com" className="block hover:text-white transition-colors">hadijaj@darubiniscreening.com</a>
+                    <a href="mailto:relations@darubiniscreening.com" className="block hover:text-white transition-colors">relations@darubiniscreening.com</a>                 
                   </div>
                 </div>
               </address>
